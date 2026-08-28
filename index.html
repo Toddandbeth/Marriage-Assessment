@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intentional Marriage Assessment</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root{
+    --paper: #F4F0E6;
+    --paper-2: #FFFFFF;
+    --card: #DEDCCB;
+    --ink: #201E19;
+    --ink-soft: #55503F;
+    --sage: #6E7660;
+    --sage-deep: #4B5240;
+    --tan: #C7AD84;
+    --gold: #A6822F;
+    --rust: #9B4A38;
+    --line: rgba(32,30,25,0.14);
+    --radius: 22px;
+    --shadow: 0 1px 2px rgba(32,30,25,0.06), 0 8px 24px rgba(32,30,25,0.08);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  #app{ max-width: 640px; margin: 0 auto; padding: 28px 20px 80px; }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--sage-deep); font-weight: 600; margin: 0 0 6px;
+  }
+  h1.display{
+    font-family:'Fraunces', serif; font-weight: 600; font-size: clamp(28px, 6vw, 38px);
+    line-height: 1.08; margin: 0 0 10px; letter-spacing: -0.01em;
+  }
+  h1.display em{ font-style: normal; color: var(--sage-deep); }
+  p.lede{ font-size: 15.5px; line-height: 1.55; color: var(--ink-soft); margin: 0 0 28px; max-width: 54ch; }
+  h2.section-title{ font-family:'Fraunces', serif; font-weight: 600; font-size: 21px; margin: 0 0 4px; }
+
+  .card{ background: var(--paper-2); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; margin-bottom: 16px; }
+
+  .choice-row{ display:flex; flex-direction:column; gap:12px; margin-top: 22px; }
+  .choice-btn{
+    display:flex; align-items:center; justify-content:space-between; gap: 12px;
+    background: var(--card); border: none; border-radius: 16px; padding: 18px 20px;
+    font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 600; color: var(--ink);
+    cursor: pointer; text-align: left; transition: transform 0.12s ease, background 0.12s ease;
+  }
+  .choice-btn:hover{ background: var(--tan); }
+  .choice-btn:active{ transform: scale(0.985); }
+  .choice-btn .sub{ display:block; font-weight: 400; font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
+  .choice-btn .arrow{ font-size: 20px; opacity: 0.5; flex-shrink:0; }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    background: var(--sage-deep); color: #F4F0E6; border: none; border-radius: 999px;
+    padding: 14px 26px; font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.12s ease, transform 0.12s ease;
+  }
+  .btn:hover{ opacity: 0.92; }
+  .btn:active{ transform: scale(0.98); }
+  .btn.ghost{ background: transparent; color: var(--sage-deep); border: 1.5px solid var(--sage-deep); }
+  .btn.small{ padding: 9px 16px; font-size: 13px; }
+  .btn:disabled{ opacity: 0.4; cursor: not-allowed; }
+
+  .backlink{
+    font-family:'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.04em; color: var(--ink-soft);
+    background:none; border:none; cursor:pointer; padding: 0 0 18px; display:flex; align-items:center; gap:6px;
+  }
+  .backlink:hover{ color: var(--ink); }
+
+  label.field-label{
+    display:block; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; font-weight: 600;
+  }
+  input[type="text"], input[type="email"]{
+    width: 100%; font-family:'IBM Plex Mono', monospace; font-size: 18px; letter-spacing: 0.06em;
+    padding: 14px 16px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--paper); color: var(--ink);
+  }
+  input[type="text"]:focus, input[type="email"]:focus, input[type="url"]:focus{ outline: 2px solid var(--sage); outline-offset: 1px; }
+  input.uppercase{ text-transform: uppercase; }
+  input[type="url"]{ width:100%; font-family:'Inter',sans-serif; font-size:14px; padding: 12px 14px; border-radius: 10px; border:1.5px solid var(--line); background: var(--paper); color: var(--ink); }
+
+  .code-pill{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-weight: 600; letter-spacing: 0.1em;
+    background: var(--card); padding: 10px 20px; border-radius: 12px; margin: 6px 0 18px;
+  }
+  .code-pill.class{ font-size: 26px; }
+  .code-pill.private{ font-size: 22px; background: var(--sage-deep); color: #F4F0E6; }
+
+  .progress-track{ height: 6px; background: var(--card); border-radius: 999px; overflow: hidden; margin-bottom: 22px; }
+  .progress-fill{ height: 100%; background: var(--sage-deep); border-radius: 999px; transition: width 0.25s ease; }
+  .cat-number{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--sage-deep); font-weight: 600; letter-spacing: 0.08em; }
+
+  .statement{ padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .statement:last-child{ border-bottom: none; }
+  .statement p{ font-size: 16px; line-height: 1.4; margin: 0 0 14px; font-weight: 500; }
+  .scale{ display:flex; gap: 8px; }
+  .scale button{
+    flex: 1; aspect-ratio: 1; border-radius: 10px; border: 1.5px solid var(--line); background: var(--paper-2);
+    font-family:'IBM Plex Mono', monospace; font-weight: 600; font-size: 16px; color: var(--ink-soft); cursor: pointer;
+  }
+  .scale button.selected{ background: var(--sage-deep); border-color: var(--sage-deep); color: #fff; }
+  .scale-labels{ display:flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-soft); margin-top: 6px; font-family:'IBM Plex Mono', monospace; }
+
+  .score-row{ display:flex; align-items:center; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .score-row:last-child{ border-bottom: none; }
+  .score-row .name{ flex: 1; font-weight: 600; font-size: 14.5px; }
+  .score-row .bar-track{ flex: 1.3; height: 10px; background: var(--card); border-radius: 999px; overflow:hidden; }
+  .score-row .bar-fill{ height: 100%; border-radius: 999px; }
+  .score-row .val{ font-family:'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px; width: 44px; text-align:right; color: var(--ink-soft); }
+  .score-row .chevron{ font-size: 13px; color: var(--ink-soft); width: 14px; text-align:center; flex-shrink:0; }
+  .band-tag{
+    font-family:'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px; color:#fff; flex-shrink:0;
+  }
+
+  .detail-panel{ padding: 4px 0 18px 0; }
+  .detail-item{ display:flex; align-items:flex-start; justify-content:space-between; gap: 14px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .detail-item:last-child{ border-bottom:none; }
+  .detail-item .stext{ font-size: 14px; line-height: 1.4; flex:1; }
+  .dots{ display:flex; gap: 4px; flex-shrink:0; align-items:center; }
+  .dots .dot{ width: 9px; height: 9px; border-radius: 50%; background: var(--card); }
+  .dots .dot.filled{ background: var(--sage-deep); }
+  .dots .num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); margin-left: 6px; width: 12px; }
+
+  .dist-row{ margin-bottom: 20px; }
+  .dist-row .cat-head{ display:flex; justify-content: space-between; align-items:baseline; margin-bottom: 8px; }
+  .dist-row .cat-head .name{ font-weight: 600; font-size: 15px; }
+  .dist-row .cat-head .avg{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-soft); }
+  .stack{ display:flex; height: 22px; border-radius: 8px; overflow:hidden; background: var(--card); }
+  .stack span{ display:block; height:100%; }
+  .stack-legend{ display:flex; gap: 14px; margin-top: 6px; flex-wrap:wrap; }
+  .stack-legend .item{ display:flex; align-items:center; gap:5px; font-size: 11px; color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
+  .swatch{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .empty-state{ text-align:center; padding: 40px 20px; color: var(--ink-soft); }
+  .empty-state .big{ font-size: 40px; margin-bottom: 10px; }
+
+  .banner{ background: var(--sage-deep); color: #F4F0E6; border-radius: 16px; padding: 16px 18px; margin-bottom: 18px; font-size: 13.5px; line-height: 1.5; }
+  .error-banner{ background: #F4E4DF; color: var(--rust); border-radius: 12px; padding: 12px 16px; margin: 10px 0; font-size: 13.5px; }
+  .footer-note{ font-size: 12px; color: var(--ink-soft); text-align:center; margin-top: 30px; line-height: 1.5; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
+
+  @media print{
+    .backlink, #printBtn, .btn, .choice-row, .banner{ display:none !important; }
+    body{ background:#fff; }
+    .card{ box-shadow:none; border:1px solid #ccc; }
+  }
+  @media (prefers-reduced-motion: reduce){ *{ transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ---------- CONFIGURE THESE TWO VALUES FOR YOUR SUPABASE PROJECT ---------- */
+const SUPABASE_URL = "https://wbwhoeuxprffziifitwf.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_u8aAsfhSKwS_GypjIFCUNA_vQ-WRKpL";
+/* --------------------------------------------------------------------------- */
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const CATEGORIES = [
+  { name: "Communication & Conflict", statements: [
+    "I feel heard and understood when I talk to my spouse.",
+    "We can bring up difficult topics without fear of an argument.",
+    "We handle disagreements in a healthy and respectful way.",
+    "We can apologize and forgive each other easily after a disagreement.",
+    "We try to understand each other's perspective during conflict."
+  ]},
+  { name: "Intimacy & Affection", statements: [
+    "We maintain a healthy emotional connection.",
+    "We are both satisfied with the level of physical intimacy in our marriage.",
+    "We express love through non-sexual affection regularly.",
+    "We talk openly about our needs and desires related to intimacy.",
+    "We understand and respond to each other's love languages."
+  ]},
+  { name: "Shared Lifestyle & Balance", statements: [
+    "We enjoy doing things together (hobbies, routines, etc.).",
+    "Our lifestyle habits (health, routines, entertainment) are compatible.",
+    "We make time for fun or spontaneous activities as a couple.",
+    "We set healthy limits on technology and distractions.",
+    "We maintain a good balance between time together and personal time."
+  ]},
+  { name: "Finances & Responsibilities", statements: [
+    "We agree on how to handle money and budgeting.",
+    "We share household tasks in a fair and respectful way.",
+    "We regularly discuss finances without tension or conflict.",
+    "We appreciate each other's contributions at home and financially.",
+    "We're on the same page about saving, spending, and giving."
+  ]},
+  { name: "Trust & Emotional Safety", statements: [
+    "I feel emotionally safe and secure with my spouse.",
+    "I trust my spouse with important decisions and responsibilities.",
+    "We follow through on commitments to each other.",
+    "We are transparent with each other about finances, plans, and emotions.",
+    "We protect each other's reputation and vulnerabilities."
+  ]},
+  { name: "Independence & Friendship", statements: [
+    "We both support each other's personal goals and friendships.",
+    "We have a healthy balance between togetherness and independence.",
+    "We enjoy spending time together as friends.",
+    "We make each other laugh and feel valued.",
+    "We support each other's personal growth and self-care."
+  ]},
+  { name: "Spiritual Connection", statements: [
+    "We pray or reflect together regularly.",
+    "We talk about our faith and how it applies to our life.",
+    "We support each other's spiritual growth.",
+    "We attend church or engage in spiritual community together.",
+    "We share similar beliefs and spiritual values."
+  ]},
+  { name: "Future Goals & Vision", statements: [
+    "We talk about our long-term goals and plans.",
+    "We are aligned in our vision for our future.",
+    "We adjust our goals as needed through different seasons.",
+    "We both feel we are building something meaningful together.",
+    "We check in regularly about dreams, direction, and priorities."
+  ]},
+  { name: "Health & Self-Care", statements: [
+    "We encourage each other's emotional and physical health.",
+    "We handle stress in ways that strengthen our marriage.",
+    "We both maintain habits that support long-term well-being.",
+    "We support each other's need for rest, exercise, and space.",
+    "We share responsibilities so one person doesn't get burned out."
+  ]},
+  { name: "Marriage Priorities & Commitment", statements: [
+    "We both view our marriage as a top priority.",
+    "We regularly invest time and effort into strengthening our relationship.",
+    "We intentionally guard against threats to our marriage.",
+    "We encourage each other's growth as husband and wife.",
+    "We are committed to growing closer through all seasons of life."
+  ]},
+  { name: "Parenting & Children", statements: [
+    "We are united in our parenting values and approach.",
+    "We support each other in parenting roles and responsibilities.",
+    "We prioritize our marriage even while raising children.",
+    "We resolve parenting disagreements in a respectful way.",
+    "We are intentional about teaching our children through our example."
+  ]},
+  { name: "Extended Family & In-Laws", statements: [
+    "We have clear boundaries with extended family that protect our marriage.",
+    "We support each other in handling challenging family dynamics.",
+    "Holidays and family gatherings strengthen rather than stress our relationship.",
+    "We communicate well about expectations for time with extended family.",
+    "We both feel respected by each other's families."
+  ]}
+];
+
+function bandFor(score){
+  if(score === 25) return { key:"strong", label: "Strong", color: "#6E7660" };
+  if(score >= 20) return { key:"good", label: "Very good", color: "#8A8F55" };
+  if(score >= 15) return { key:"grow", label: "Room to grow", color: "#A6822F" };
+  return { key:"focus", label: "Needs focus", color: "#9B4A38" };
+}
+
+function getParam(name){
+  const url = new URL(window.location.href);
+  return url.searchParams.get(name);
+}
+
+function makeClassCode(){
+  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  let c = "";
+  for(let i=0;i<4;i++) c += letters[Math.floor(Math.random()*letters.length)];
+  return c;
+}
+
+function makeRetrievalCode(){
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint32Array(10);
+  crypto.getRandomValues(bytes);
+  let s = "";
+  for(let i=0;i<10;i++) s += chars[bytes[i] % chars.length];
+  return s.slice(0,5) + "-" + s.slice(5);
+}
+
+const LAST_CLASS_KEY = "fcm-marriage-facilitator-last-code";
+
+const state = {
+  view: "home",
+  classCode: (getParam("class") || "").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6),
+  facilitatorCode: "",
+  answers: {},
+  step: 0,
+  emailInput: "",
+  viewingSubmission: null,   // { classCode, createdAt, answers, scores, retrievalCode, justSubmitted, email }
+  expandedCategory: null,
+  expandAll: false,
+  lookupCode: "",
+  lookupError: "",
+  submitError: "",
+  submitting: false,
+  aggLoading: false,
+  aggData: null,
+  aggCode: "",
+  aggError: "",
+  qrUrl: ""
+};
+
+window.addEventListener("beforeprint", () => { state.expandAll = true; render(); });
+window.addEventListener("afterprint", () => { state.expandAll = false; render(); });
+
+function render(){
+  const app = document.getElementById("app");
+  if(state.view === "home") app.innerHTML = homeView();
+  else if(state.view === "facilitatorSetup") app.innerHTML = facilitatorSetupView();
+  else if(state.view === "facilitatorDash") app.innerHTML = facilitatorDashView();
+  else if(state.view === "joinCode") app.innerHTML = joinCodeView();
+  else if(state.view === "assessment") app.innerHTML = assessmentView();
+  else if(state.view === "results") app.innerHTML = resultsView();
+  else if(state.view === "lookup") app.innerHTML = lookupView();
+  attachHandlers();
+}
+
+function homeView(){
+  return `
+    <p class="eyebrow">Intentional Ministries · Digital Edition</p>
+    <h1 class="display">The <em>Marriage Assessment</em>, made for a class.</h1>
+    <p class="lede">Answer sixty statements across twelve areas of marriage. You'll get a private code to come back to your own results any time, and if you're leading a class, you can see the group's patterns without ever seeing anyone's individual answers.</p>
+    <div class="choice-row">
+      <button class="choice-btn" data-go="joinCode">
+        <span>Take the assessment<span class="sub">You have a class code, or you're doing this on your own</span></span>
+        <span class="arrow">&#8594;</span>
+      </button>
+      <button class="choice-btn" data-go="lookup">
+        <span>Look up a previous result<span class="sub">You have a private code from an assessment you already took</span></span>
+        <span class="arrow">&#8594;</span>
+      </button>
+      <button class="choice-btn" id="leadClassBtn">
+        <span>Lead a class<span class="sub">Create a class code and watch anonymous group results come in</span></span>
+        <span class="arrow">&#8594;</span>
+      </button>
+    </div>
+    <p class="footer-note">Individual answers are never shown to a class leader. Only anonymous category totals are added to the group view.</p>
+  `;
+}
+
+function facilitatorSetupView(){
+  const code = state.facilitatorCode || "\u2026";
+  return `
+    <button class="backlink" data-go="home">&#8592; Back</button>
+    <p class="eyebrow">Class setup</p>
+    <h2 class="section-title">Your class code</h2>
+    <p class="lede" style="margin-top:6px;">Share this code, or the QR below, with everyone taking the assessment. This code is saved on this device, so it'll still be here next time you open this page.</p>
+    <div class="code-pill class">${code}</div>
+    <div class="card">
+      <label class="field-label">Link people will scan (your deployed URL, e.g. assessment.intentionalministries.com)</label>
+      <input type="url" id="shareUrlInput" placeholder="https://assessment.intentionalministries.com" value="${state.qrUrl}">
+      <div style="margin-top:16px; display:flex; flex-direction:column; align-items:flex-start; gap:10px;">
+        <div id="qrHolder" style="display:none;"></div>
+        <button class="btn small ghost" id="genQrBtn">Generate QR link</button>
+        <p class="footer-note" style="margin:0; text-align:left;" id="qrLinkText"></p>
+      </div>
+      <p class="footer-note" style="margin-top:14px; text-align:left;">No link yet? People can also just open this page and type in the code <strong>${code}</strong> by hand.</p>
+    </div>
+    <button class="btn" id="openDashBtn" style="margin-top:6px;">Open live class results</button>
+    <div style="margin-top:14px;">
+      <button class="backlink" id="newClassBtn" style="padding:0;">Start a different class (new code)</button>
+    </div>
+  `;
+}
+
+async function goToFacilitatorSetup(forceNew){
+  state.view = "facilitatorSetup";
+  state.facilitatorCode = "";
+  render();
+  if(!forceNew){
+    const saved = localStorage.getItem(LAST_CLASS_KEY);
+    if(saved){ state.facilitatorCode = saved; render(); return; }
+  }
+  const code = makeClassCode();
+  state.facilitatorCode = code;
+  localStorage.setItem(LAST_CLASS_KEY, code);
+  render();
+}
+
+function joinCodeView(){
+  return `
+    <button class="backlink" data-go="home">&#8592; Back</button>
+    <p class="eyebrow">Join a class</p>
+    <h2 class="section-title">Enter your class code</h2>
+    <p class="lede" style="margin-top:6px;">Ask your class leader for the code, or leave this blank to take the assessment just for yourself.</p>
+    <div class="card">
+      <label class="field-label">Class code (optional)</label>
+      <input type="text" class="uppercase" id="codeInput" maxlength="6" placeholder="e.g. MARR" value="${state.classCode}">
+    </div>
+    <button class="btn" id="startBtn">Begin assessment</button>
+  `;
+}
+
+function assessmentView(){
+  const totalSteps = CATEGORIES.length;
+  const cat = CATEGORIES[state.step];
+  const pct = Math.round((state.step / totalSteps) * 100);
+  const answers = state.answers[state.step] || {};
+  const allAnswered = cat.statements.every((_, i) => answers[i]);
+
+  const statementsHtml = cat.statements.map((s, i) => `
+    <div class="statement">
+      <p>${s}</p>
+      <div class="scale">
+        ${[1,2,3,4,5].map(v => `<button class="scale-btn ${answers[i]===v ? 'selected':''}" data-q="${i}" data-v="${v}">${v}</button>`).join("")}
+      </div>
+      <div class="scale-labels"><span>Strongly disagree</span><span>Strongly agree</span></div>
+    </div>
+  `).join("");
+
+  return `
+    <button class="backlink" data-go="joinCode">&#8592; Start over</button>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <p class="cat-number">Category ${state.step + 1} of ${totalSteps}</p>
+    <h2 class="section-title">${cat.name}</h2>
+    <div class="card" style="margin-top:16px;">${statementsHtml}</div>
+    <button class="btn" id="nextBtn" ${allAnswered ? "" : "disabled"}>
+      ${state.step === totalSteps - 1 ? "Finish assessment" : "Next category"}
+    </button>
+  `;
+}
+
+function buildAnswersAndScores(){
+  const answers = {}; const scores = {};
+  CATEGORIES.forEach((cat, ci) => {
+    const arr = [];
+    let sum = 0;
+    for(let i=0;i<5;i++){ const v = (state.answers[ci] && state.answers[ci][i]) || 0; arr.push(v); sum += v; }
+    answers[cat.name] = arr;
+    scores[cat.name] = sum;
+  });
+  return { answers, scores };
+}
+
+async function finishAssessment(){
+  const { answers, scores } = buildAnswersAndScores();
+  state.submitting = true;
+  state.submitError = "";
+  render();
+
+  let retrievalCode = null;
+  let lastError = null;
+  for(let attempt=0; attempt<5 && !retrievalCode; attempt++){
+    const candidate = makeRetrievalCode();
+    const { error } = await supabase.from("submissions").insert({
+      class_code: state.classCode || null,
+      retrieval_code: candidate,
+      email: state.emailInput || null,
+      answers, scores
+    });
+    if(!error){ retrievalCode = candidate; }
+    else if(error.code !== "23505"){ lastError = error; break; }
+  }
+
+  state.submitting = false;
+  if(!retrievalCode){
+    state.submitError = "We couldn't save your results just now. Your answers are still on this screen — check your connection and try again.";
+    render();
+    return;
+  }
+
+  state.viewingSubmission = {
+    classCode: state.classCode || null,
+    createdAt: new Date().toISOString(),
+    answers, scores,
+    retrievalCode,
+    justSubmitted: true
+  };
+  state.expandedCategory = null;
+  state.view = "results";
+  render();
+  window.scrollTo({top:0, behavior:"instant"});
+}
+
+function lookupView(){
+  return `
+    <button class="backlink" data-go="home">&#8592; Back</button>
+    <p class="eyebrow">Look up a result</p>
+    <h2 class="section-title">Enter your private code</h2>
+    <p class="lede" style="margin-top:6px;">This is the code you were shown right after finishing the assessment, not the class code.</p>
+    <div class="card">
+      <label class="field-label">Private results code</label>
+      <input type="text" class="uppercase" id="lookupInput" placeholder="XXXXX-XXXXX" value="${state.lookupCode}">
+    </div>
+    ${state.lookupError ? `<div class="error-banner">${state.lookupError}</div>` : ""}
+    <button class="btn" id="lookupBtn">Find my results</button>
+  `;
+}
+
+async function runLookup(code){
+  state.lookupError = "";
+  render();
+  const { data, error } = await supabase.rpc("get_submission_by_code", { p_code: code });
+  if(error || !data || data.length === 0){
+    state.lookupError = "We couldn't find a result with that code. Double check it and try again.";
+    render();
+    return;
+  }
+  const row = data[0];
+  state.viewingSubmission = {
+    classCode: row.class_code,
+    createdAt: row.created_at,
+    answers: row.answers,
+    scores: row.scores,
+    retrievalCode: code,
+    justSubmitted: false
+  };
+  state.expandedCategory = null;
+  state.view = "results";
+  render();
+  window.scrollTo({top:0, behavior:"instant"});
+}
+
+function resultsView(){
+  const sub = state.viewingSubmission;
+  const scores = sub.scores;
+  const answers = sub.answers;
+  const total = Object.values(scores).reduce((a,b)=>a+b,0);
+  const maxTotal = CATEGORIES.length * 25;
+
+  const rows = CATEGORIES.map(cat => {
+    const score = scores[cat.name];
+    const band = bandFor(score);
+    const pct = Math.round((score/25)*100);
+    const isOpen = state.expandAll || state.expandedCategory === cat.name;
+    const detail = isOpen ? `
+      <div class="detail-panel">
+        ${cat.statements.map((s,i) => {
+          const v = (answers[cat.name] && answers[cat.name][i]) || 0;
+          const dots = [1,2,3,4,5].map(d => `<span class="dot ${d<=v?'filled':''}"></span>`).join("");
+          return `<div class="detail-item"><div class="stext">${s}</div><div class="dots">${dots}<span class="num">${v}</span></div></div>`;
+        }).join("")}
+      </div>
+    ` : "";
+    return `
+      <div>
+        <div class="score-row" data-toggle="${cat.name}">
+          <span class="chevron">${isOpen ? "\u25be" : "\u25b8"}</span>
+          <div class="name">${cat.name}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${band.color};"></div></div>
+          <div class="val">${score}/25</div>
+          <div class="band-tag" style="background:${band.color};">${band.label}</div>
+        </div>
+        ${detail}
+      </div>
+    `;
+  }).join("");
+
+  const lowest = Object.entries(scores).sort((a,b)=>a[1]-b[1])[0];
+  const highest = Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
+  const mailBody = encodeURIComponent(`Here is my private results code for the Intentional Marriage Assessment: ${sub.retrievalCode}\n\nKeep this to look up your results again any time at the assessment link your class leader shared.`);
+
+  return `
+    ${!sub.justSubmitted ? `<button class="backlink" data-go="home">&#8592; Back</button>` : ""}
+    <p class="eyebrow">Your results</p>
+    <h1 class="display">Here's where you <em>are</em> right now.</h1>
+    <p class="lede">This isn't a grade, it's a starting point for a conversation with your spouse. Tap into any category below to see exactly which statements shaped that score, then sit down together and compare.</p>
+    ${sub.justSubmitted ? `
+      <div class="banner">
+        <strong>Save this code, it's the only way back in:</strong><br>
+        <span class="code-pill private">${sub.retrievalCode}</span><br>
+        Nobody else, including your class leader, can look up your results without it. Write it down, screenshot it, or email it to yourself below.
+      </div>
+      <div class="btn-row" style="margin-bottom:22px;">
+        <a class="btn small ghost" style="text-decoration:none;" href="mailto:?subject=My%20assessment%20code&body=${mailBody}">Email this code to myself</a>
+      </div>
+    ` : ""}
+    ${sub.classCode ? `<p class="footer-note" style="text-align:left; margin-top:0;">Part of class ${sub.classCode}. Your leader only ever sees anonymous group totals, never this screen.</p>` : ""}
+    <div class="card">
+      <div class="score-row" style="border-bottom:1.5px solid var(--line); margin-bottom:6px; cursor:default;">
+        <span class="chevron"></span>
+        <div class="name" style="font-family:'Fraunces',serif; font-size:16px;">Overall</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((total/maxTotal)*100)}%; background:var(--sage-deep);"></div></div>
+        <div class="val">${total}/${maxTotal}</div>
+      </div>
+      ${rows}
+    </div>
+    <p class="lede" style="margin-top:4px;">The strongest area right now is <strong>${highest[0]}</strong>. The area that could use the most attention is <strong>${lowest[0]}</strong>.</p>
+    <div class="btn-row">
+      <button class="btn" id="printBtn">Print or save as PDF</button>
+      <button class="btn ghost" data-go="home">Done</button>
+    </div>
+    <p class="footer-note">For a deeper walkthrough of these results together, see Intentional Marriage or the 30-Day Intentional Marriage Challenge at IntentionalMinistries.com.</p>
+  `;
+}
+
+async function loadAggregate(code){
+  state.aggLoading = true;
+  state.aggError = "";
+  render();
+  const { data, error } = await supabase.rpc("get_class_aggregate", { p_class_code: code });
+  state.aggLoading = false;
+  if(error){ state.aggError = "Couldn't load results just now. Try refreshing."; state.aggData = []; render(); return; }
+  state.aggData = data || [];
+  render();
+}
+
+function facilitatorDashView(){
+  const code = state.facilitatorCode || state.aggCode;
+  if(state.aggLoading){
+    return `<button class="backlink" data-go="facilitatorSetup">&#8592; Back</button><p class="eyebrow">Class ${code}</p><h2 class="section-title">Loading group results&hellip;</h2>`;
+  }
+  const subs = state.aggData || [];
+  const n = subs.length;
+
+  if(state.aggError){
+    return `<button class="backlink" data-go="facilitatorSetup">&#8592; Back</button><p class="eyebrow">Class ${code}</p><div class="error-banner">${state.aggError}</div><button class="btn ghost" id="refreshBtn">Try again</button>`;
+  }
+
+  if(n === 0){
+    return `
+      <button class="backlink" data-go="facilitatorSetup">&#8592; Back</button>
+      <p class="eyebrow">Class ${code}</p>
+      <h2 class="section-title">Live group results</h2>
+      <div class="empty-state">
+        <div class="big">&#9917;</div>
+        <p>No submissions yet. Once people scan the QR code or enter <strong>${code}</strong>, their anonymous results will show up here.</p>
+      </div>
+      <button class="btn ghost" id="refreshBtn">Refresh</button>
+    `;
+  }
+
+  const bands = [
+    { key: "strong", label: "Strong (25)", color: "#6E7660" },
+    { key: "good", label: "Very good (20\u201324)", color: "#8A8F55" },
+    { key: "grow", label: "Room to grow (15\u201319)", color: "#A6822F" },
+    { key: "focus", label: "Needs focus (<15)", color: "#9B4A38" }
+  ];
+
+  const rows = CATEGORIES.map(cat => {
+    const scores = subs.map(s => s.scores[cat.name]).filter(v => typeof v === "number");
+    const counts = { strong:0, good:0, grow:0, focus:0 };
+    let sum = 0;
+    scores.forEach(sc => { counts[bandFor(sc).key]++; sum += sc; });
+    const avg = scores.length ? (sum/scores.length).toFixed(1) : "—";
+    const segs = bands.map(b => {
+      const w = scores.length ? (counts[b.key]/scores.length)*100 : 0;
+      return `<span style="width:${w}%; background:${b.color};" title="${b.label}: ${counts[b.key]}"></span>`;
+    }).join("");
+    return `<div class="dist-row"><div class="cat-head"><span class="name">${cat.name}</span><span class="avg">avg ${avg}/25</span></div><div class="stack">${segs}</div></div>`;
+  }).join("");
+
+  const legend = bands.map(b => `<span class="item"><span class="swatch" style="background:${b.color};"></span>${b.label}</span>`).join("");
+
+  return `
+    <button class="backlink" data-go="facilitatorSetup">&#8592; Back to class setup</button>
+    <p class="eyebrow">Class ${code} · ${n} response${n===1?"":"s"}</p>
+    <h1 class="display">Where the room <em>stands</em>.</h1>
+    <p class="lede">Anonymous, category by category. No names, no way to tell who answered what.</p>
+    <div class="card">${rows}<div class="stack-legend">${legend}</div></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="refreshBtn">Refresh results</button>
+      <button class="btn ghost" id="exportBtn">Download as .csv</button>
+    </div>
+  `;
+}
+
+function exportCSV(code, subs){
+  const header = ["submission_time", ...CATEGORIES.map(c => c.name)];
+  const lines = [header.map(csvSafe).join(",")];
+  subs.forEach(s => {
+    const row = [new Date(s.created_at).toISOString(), ...CATEGORIES.map(c => (s.scores[c.name] ?? ""))];
+    lines.push(row.map(csvSafe).join(","));
+  });
+  const csv = lines.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `marriage-assessment-class-${code}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function csvSafe(v){
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+
+function attachHandlers(){
+  document.querySelectorAll("[data-go]").forEach(el => {
+    el.addEventListener("click", () => { state.view = el.getAttribute("data-go"); render(); });
+  });
+
+  const leadClassBtn = document.getElementById("leadClassBtn");
+  if(leadClassBtn) leadClassBtn.addEventListener("click", () => goToFacilitatorSetup(false));
+
+  const newClassBtn = document.getElementById("newClassBtn");
+  if(newClassBtn) newClassBtn.addEventListener("click", () => goToFacilitatorSetup(true));
+
+  const codeInput = document.getElementById("codeInput");
+  const startBtn = document.getElementById("startBtn");
+  if(startBtn){
+    startBtn.addEventListener("click", () => {
+      state.classCode = (codeInput.value || "").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);
+      state.answers = {}; state.step = 0;
+      state.view = "assessment";
+      render();
+    });
+  }
+
+  document.querySelectorAll(".scale-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const q = parseInt(btn.getAttribute("data-q"), 10);
+      const v = parseInt(btn.getAttribute("data-v"), 10);
+      if(!state.answers[state.step]) state.answers[state.step] = {};
+      state.answers[state.step][q] = v;
+      render();
+    });
+  });
+
+  const nextBtn = document.getElementById("nextBtn");
+  if(nextBtn){
+    nextBtn.addEventListener("click", () => {
+      if(state.step < CATEGORIES.length - 1){
+        state.step++; render(); window.scrollTo({top:0, behavior:"instant"});
+      } else {
+        finishAssessment();
+      }
+    });
+  }
+
+  document.querySelectorAll("[data-toggle]").forEach(el => {
+    el.addEventListener("click", () => {
+      const name = el.getAttribute("data-toggle");
+      state.expandedCategory = state.expandedCategory === name ? null : name;
+      render();
+    });
+  });
+
+  const printBtn = document.getElementById("printBtn");
+  if(printBtn) printBtn.addEventListener("click", () => window.print());
+
+  const lookupInput = document.getElementById("lookupInput");
+  const lookupBtn = document.getElementById("lookupBtn");
+  if(lookupBtn){
+    lookupBtn.addEventListener("click", () => {
+      const v = (lookupInput.value || "").toUpperCase().trim();
+      state.lookupCode = v;
+      if(v) runLookup(v);
+    });
+  }
+
+  const genQrBtn = document.getElementById("genQrBtn");
+  if(genQrBtn){
+    genQrBtn.addEventListener("click", () => {
+      const input = document.getElementById("shareUrlInput");
+      let base = (input.value || "").trim();
+      if(!base) return;
+      state.qrUrl = base;
+      const sep = base.includes("?") ? "&" : "?";
+      const full = `${base}${sep}class=${state.facilitatorCode}`;
+      document.getElementById("qrLinkText").textContent = full;
+      const holder = document.getElementById("qrHolder");
+      holder.style.display = "block";
+      holder.innerHTML = `<img alt="QR code" style="border-radius:12px;" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(full)}">`;
+    });
+  }
+
+  const openDashBtn = document.getElementById("openDashBtn");
+  if(openDashBtn){
+    openDashBtn.addEventListener("click", () => {
+      state.aggCode = state.facilitatorCode;
+      state.view = "facilitatorDash";
+      loadAggregate(state.facilitatorCode);
+    });
+  }
+
+  const refreshBtn = document.getElementById("refreshBtn");
+  if(refreshBtn) refreshBtn.addEventListener("click", () => loadAggregate(state.aggCode || state.facilitatorCode));
+
+  const exportBtn = document.getElementById("exportBtn");
+  if(exportBtn) exportBtn.addEventListener("click", () => exportCSV(state.aggCode || state.facilitatorCode, state.aggData || []));
+}
+
+if(state.classCode){
+  state.view = "assessment";
+  state.answers = {};
+  state.step = 0;
+}
+render();
+</script>
+</body>
+</html>
