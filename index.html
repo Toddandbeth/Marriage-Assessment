@@ -168,7 +168,7 @@ const SUPABASE_URL = "https://wbwhoeuxprffziifitwf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_u8aAsfhSKwS_GypjIFCUNA_vQ-WRKpL";
 /* --------------------------------------------------------------------------- */
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CATEGORIES = [
   { name: "Communication & Conflict", statements: [
@@ -450,7 +450,7 @@ async function finishAssessment(){
   let lastError = null;
   for(let attempt=0; attempt<5 && !retrievalCode; attempt++){
     const candidate = makeRetrievalCode();
-    const { error } = await supabase.from("submissions").insert({
+    const { error } = await supabaseClient.from("submissions").insert({
       class_code: state.classCode || null,
       retrieval_code: candidate,
       email: state.emailInput || null,
@@ -498,7 +498,7 @@ function lookupView(){
 async function runLookup(code){
   state.lookupError = "";
   render();
-  const { data, error } = await supabase.rpc("get_submission_by_code", { p_code: code });
+  const { data, error } = await supabaseClient.rpc("get_submission_by_code", { p_code: code });
   if(error || !data || data.length === 0){
     state.lookupError = "We couldn't find a result with that code. Double check it and try again.";
     render();
@@ -596,7 +596,7 @@ async function loadAggregate(code){
   state.aggLoading = true;
   state.aggError = "";
   render();
-  const { data, error } = await supabase.rpc("get_class_aggregate", { p_class_code: code });
+  const { data, error } = await supabaseClient.rpc("get_class_aggregate", { p_class_code: code });
   state.aggLoading = false;
   if(error){ state.aggError = "Couldn't load results just now. Try refreshing."; state.aggData = []; render(); return; }
   state.aggData = data || [];
