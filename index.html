@@ -59,6 +59,8 @@
   .choice-btn:active{ transform: scale(0.985); }
   .choice-btn .sub{ display:block; font-weight: 400; font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
   .choice-btn .arrow{ font-size: 20px; opacity: 0.5; flex-shrink:0; }
+  .choice-btn.selected-choice{ background: var(--sage-deep); color: #fff; }
+  .choice-btn.selected-choice .sub{ color: rgba(244,240,230,0.8); }
 
   .btn{
     display:inline-flex; align-items:center; justify-content:center; gap:8px;
@@ -78,6 +80,12 @@
   }
   .backlink:hover{ color: var(--ink); }
 
+  .tiny-link{
+    background:none; border:none; cursor:pointer; font-family:'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: 0.04em; color: var(--ink-soft); opacity: 0.5; padding: 4px;
+  }
+  .tiny-link:hover{ opacity: 0.9; }
+
   label.field-label{
     display:block; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; font-weight: 600;
@@ -89,6 +97,7 @@
   input[type="text"]:focus, input[type="email"]:focus, input[type="url"]:focus{ outline: 2px solid var(--sage); outline-offset: 1px; }
   input.uppercase{ text-transform: uppercase; }
   input[type="url"]{ width:100%; font-family:'Inter',sans-serif; font-size:14px; padding: 12px 14px; border-radius: 10px; border:1.5px solid var(--line); background: var(--paper); color: var(--ink); }
+  input.plain-text{ text-transform:none; font-family:'Inter',sans-serif; font-size:14px; letter-spacing:normal; }
 
   .code-pill{
     display:inline-block; font-family:'IBM Plex Mono', monospace; font-weight: 600; letter-spacing: 0.1em;
@@ -149,6 +158,7 @@
   .banner{ background: var(--sage-deep); color: #F4F0E6; border-radius: 16px; padding: 16px 18px; margin-bottom: 18px; font-size: 13.5px; line-height: 1.5; }
   .error-banner{ background: #F4E4DF; color: var(--rust); border-radius: 12px; padding: 12px 16px; margin: 10px 0; font-size: 13.5px; }
   .footer-note{ font-size: 12px; color: var(--ink-soft); text-align:center; margin-top: 30px; line-height: 1.5; }
+  .footer-note a{ color: var(--ink-soft); }
   .btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
 
   @media print{
@@ -264,18 +274,6 @@ function bandFor(score){
   return { key:"focus", label: "Needs focus", color: "#9B4A38" };
 }
 
-function getParam(name){
-  const url = new URL(window.location.href);
-  return url.searchParams.get(name);
-}
-
-function makeClassCode(){
-  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  let c = "";
-  for(let i=0;i<4;i++) c += letters[Math.floor(Math.random()*letters.length)];
-  return c;
-}
-
 function makeRetrievalCode(){
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   const bytes = new Uint32Array(10);
@@ -285,12 +283,11 @@ function makeRetrievalCode(){
   return s.slice(0,5) + "-" + s.slice(5);
 }
 
-const LAST_CLASS_KEY = "fcm-marriage-facilitator-last-code";
+const IM_LINK = "https://www.intentionalministries.com/marriage";
 
 const state = {
   view: "home",
-  classCode: (getParam("class") || "").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6),
-  facilitatorCode: "",
+  classCode: "",
   answers: {},
   step: 0,
   emailInput: "",
@@ -301,11 +298,33 @@ const state = {
   lookupError: "",
   submitError: "",
   submitting: false,
+
+  // "Take the assessment" entry screen
+  wantsClass: null,          // null = not chosen yet, true = has a class code, false = solo
+  classCodeInput: "",
+  classCodeError: "",
+  classCodeChecking: false,
+
+  // leader login
+  isLeaderAuthed: false,
+  leaderChecking: true,
+  leaderEmail: "",
+  leaderLoginSent: false,
+  leaderLoginSending: false,
+  leaderLoginError: "",
+
+  // leader dashboard
+  groups: [],
+  groupsLoading: false,
+  groupsError: "",
+  newGroupError: "",
+  newGroupCreating: false,
+
+  // leader group / all-groups aggregate view
   aggLoading: false,
   aggData: null,
   aggCode: "",
-  aggError: "",
-  qrUrl: ""
+  aggError: ""
 };
 
 window.addEventListener("beforeprint", () => { state.expandAll = true; render(); });
@@ -314,12 +333,13 @@ window.addEventListener("afterprint", () => { state.expandAll = false; render();
 function render(){
   const app = document.getElementById("app");
   if(state.view === "home") app.innerHTML = homeView();
-  else if(state.view === "facilitatorSetup") app.innerHTML = facilitatorSetupView();
-  else if(state.view === "facilitatorDash") app.innerHTML = facilitatorDashView();
-  else if(state.view === "joinCode") app.innerHTML = joinCodeView();
+  else if(state.view === "startChoice") app.innerHTML = startChoiceView();
   else if(state.view === "assessment") app.innerHTML = assessmentView();
   else if(state.view === "results") app.innerHTML = resultsView();
   else if(state.view === "lookup") app.innerHTML = lookupView();
+  else if(state.view === "leaderLogin") app.innerHTML = leaderLoginView();
+  else if(state.view === "leaderDash") app.innerHTML = leaderDashView();
+  else if(state.view === "leaderGroup") app.innerHTML = leaderGroupView();
   attachHandlers();
 }
 
@@ -327,75 +347,47 @@ function homeView(){
   return `
     <p class="eyebrow">Intentional Ministries · Digital Edition</p>
     <h1 class="display">The <em>Marriage Assessment</em>, made for a class.</h1>
-    <p class="lede">Answer sixty statements across twelve areas of marriage. You'll get a private code to come back to your own results any time, and if you're leading a class, you can see the group's patterns without ever seeing anyone's individual answers.</p>
+    <p class="lede">Answer sixty statements across twelve areas of marriage. You'll get a private code to come back to your own results any time, and if you're part of a class, your leader can see the group's patterns without ever seeing anyone's individual answers.</p>
     <div class="choice-row">
-      <button class="choice-btn" data-go="joinCode">
-        <span>Take the assessment<span class="sub">You have a class code, or you're doing this on your own</span></span>
+      <button class="choice-btn" data-go="startChoice">
+        <span>Take the Assessment<span class="sub">Start the sixty-statement assessment</span></span>
         <span class="arrow">&#8594;</span>
       </button>
       <button class="choice-btn" data-go="lookup">
-        <span>Look up a previous result<span class="sub">You have a private code from an assessment you already took</span></span>
-        <span class="arrow">&#8594;</span>
-      </button>
-      <button class="choice-btn" id="leadClassBtn">
-        <span>Lead a class<span class="sub">Create a class code and watch anonymous group results come in</span></span>
+        <span>Check a Previous Result<span class="sub">You have a private code from an assessment you already took</span></span>
         <span class="arrow">&#8594;</span>
       </button>
     </div>
     <p class="footer-note">Individual answers are never shown to a class leader. Only anonymous category totals are added to the group view.</p>
+    <p class="footer-note"><a href="${IM_LINK}" target="_blank" rel="noopener">&#8592; Back to Intentional Ministries</a></p>
+    <p class="footer-note" style="margin-top:10px;"><button class="tiny-link" id="leaderLoginLink">Leader Login</button></p>
   `;
 }
 
-function facilitatorSetupView(){
-  const code = state.facilitatorCode || "\u2026";
+function startChoiceView(){
   return `
     <button class="backlink" data-go="home">&#8592; Back</button>
-    <p class="eyebrow">Class setup</p>
-    <h2 class="section-title">Your class code</h2>
-    <p class="lede" style="margin-top:6px;">Share this code, or the QR below, with everyone taking the assessment. This code is saved on this device, so it'll still be here next time you open this page.</p>
-    <div class="code-pill class">${code}</div>
-    <div class="card">
-      <label class="field-label">Link people will scan (your deployed URL, e.g. assessment.intentionalministries.com)</label>
-      <input type="url" id="shareUrlInput" placeholder="https://assessment.intentionalministries.com" value="${state.qrUrl}">
-      <div style="margin-top:16px; display:flex; flex-direction:column; align-items:flex-start; gap:10px;">
-        <div id="qrHolder" style="display:none;"></div>
-        <button class="btn small ghost" id="genQrBtn">Generate QR link</button>
-        <p class="footer-note" style="margin:0; text-align:left;" id="qrLinkText"></p>
+    <p class="eyebrow">Take the assessment</p>
+    <h2 class="section-title">Are you taking this as part of a class?</h2>
+    <p class="lede" style="margin-top:6px;">Your leader only ever sees anonymous group totals, never your individual answers.</p>
+    <div class="choice-row" style="margin-top:6px;">
+      <button class="choice-btn ${state.wantsClass===true ? 'selected-choice':''}" id="wantsClassYes">
+        <span>Yes, I have a class code</span>
+      </button>
+      <button class="choice-btn ${state.wantsClass===false ? 'selected-choice':''}" id="wantsClassNo">
+        <span>No, just for myself</span>
+      </button>
+    </div>
+    ${state.wantsClass === true ? `
+      <div class="card" style="margin-top:16px;">
+        <label class="field-label">Class code</label>
+        <input type="text" class="uppercase" id="codeInput" maxlength="24" placeholder="e.g. FALL2026" value="${state.classCodeInput}">
       </div>
-      <p class="footer-note" style="margin-top:14px; text-align:left;">No link yet? People can also just open this page and type in the code <strong>${code}</strong> by hand.</p>
-    </div>
-    <button class="btn" id="openDashBtn" style="margin-top:6px;">Open live class results</button>
-    <div style="margin-top:14px;">
-      <button class="backlink" id="newClassBtn" style="padding:0;">Start a different class (new code)</button>
-    </div>
-  `;
-}
-
-async function goToFacilitatorSetup(forceNew){
-  state.view = "facilitatorSetup";
-  state.facilitatorCode = "";
-  render();
-  if(!forceNew){
-    const saved = localStorage.getItem(LAST_CLASS_KEY);
-    if(saved){ state.facilitatorCode = saved; render(); return; }
-  }
-  const code = makeClassCode();
-  state.facilitatorCode = code;
-  localStorage.setItem(LAST_CLASS_KEY, code);
-  render();
-}
-
-function joinCodeView(){
-  return `
-    <button class="backlink" data-go="home">&#8592; Back</button>
-    <p class="eyebrow">Join a class</p>
-    <h2 class="section-title">Enter your class code</h2>
-    <p class="lede" style="margin-top:6px;">Ask your class leader for the code, or leave this blank to take the assessment just for yourself.</p>
-    <div class="card">
-      <label class="field-label">Class code (optional)</label>
-      <input type="text" class="uppercase" id="codeInput" maxlength="6" placeholder="e.g. MARR" value="${state.classCode}">
-    </div>
-    <button class="btn" id="startBtn">Begin assessment</button>
+      ${state.classCodeError ? `<div class="error-banner">${state.classCodeError}</div>` : ""}
+    ` : ""}
+    <button class="btn" id="startBtn" style="margin-top:6px;" ${state.wantsClass===null || state.classCodeChecking ? "disabled" : ""}>
+      ${state.classCodeChecking ? "Checking…" : "Begin assessment"}
+    </button>
   `;
 }
 
@@ -417,7 +409,7 @@ function assessmentView(){
   `).join("");
 
   return `
-    <button class="backlink" data-go="joinCode">&#8592; Start over</button>
+    <button class="backlink" data-go="startChoice">&#8592; Start over</button>
     <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
     <p class="cat-number">Category ${state.step + 1} of ${totalSteps}</p>
     <h2 class="section-title">${cat.name}</h2>
@@ -451,7 +443,7 @@ async function finishAssessment(){
   for(let attempt=0; attempt<5 && !retrievalCode; attempt++){
     const candidate = makeRetrievalCode();
     const { error } = await supabaseClient.from("submissions").insert({
-      class_code: state.classCode || null,
+      class_code: state.classCode,
       retrieval_code: candidate,
       email: state.emailInput || null,
       answers, scores
@@ -468,7 +460,7 @@ async function finishAssessment(){
   }
 
   state.viewingSubmission = {
-    classCode: state.classCode || null,
+    classCode: state.classCode,
     createdAt: new Date().toISOString(),
     answers, scores,
     retrievalCode,
@@ -485,7 +477,7 @@ function lookupView(){
     <button class="backlink" data-go="home">&#8592; Back</button>
     <p class="eyebrow">Look up a result</p>
     <h2 class="section-title">Enter your private code</h2>
-    <p class="lede" style="margin-top:6px;">This is the code you were shown right after finishing the assessment, not the class code.</p>
+    <p class="lede" style="margin-top:6px;">This is the code you were shown right after finishing the assessment, not a class code.</p>
     <div class="card">
       <label class="field-label">Private results code</label>
       <input type="text" class="uppercase" id="lookupInput" placeholder="XXXXX-XXXXX" value="${state.lookupCode}">
@@ -543,7 +535,7 @@ function resultsView(){
     return `
       <div>
         <div class="score-row" data-toggle="${cat.name}">
-          <span class="chevron">${isOpen ? "\u25be" : "\u25b8"}</span>
+          <span class="chevron">${isOpen ? "▾" : "▸"}</span>
           <div class="name">${cat.name}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${band.color};"></div></div>
           <div class="val">${score}/25</div>
@@ -556,7 +548,8 @@ function resultsView(){
 
   const lowest = Object.entries(scores).sort((a,b)=>a[1]-b[1])[0];
   const highest = Object.entries(scores).sort((a,b)=>b[1]-a[1])[0];
-  const mailBody = encodeURIComponent(`Here is my private results code for the Intentional Marriage Assessment: ${sub.retrievalCode}\n\nKeep this to look up your results again any time at the assessment link your class leader shared.`);
+  const mailBody = encodeURIComponent(`Here is my private results code for the Intentional Marriage Assessment: ${sub.retrievalCode}\n\nKeep this to look up your results again any time.`);
+  const partOfRealClass = sub.classCode && sub.classCode !== "GENERAL";
 
   return `
     ${!sub.justSubmitted ? `<button class="backlink" data-go="home">&#8592; Back</button>` : ""}
@@ -573,7 +566,7 @@ function resultsView(){
         <a class="btn small ghost" style="text-decoration:none;" href="mailto:?subject=My%20assessment%20code&body=${mailBody}">Email this code to myself</a>
       </div>
     ` : ""}
-    ${sub.classCode ? `<p class="footer-note" style="text-align:left; margin-top:0;">Part of class ${sub.classCode}. Your leader only ever sees anonymous group totals, never this screen.</p>` : ""}
+    ${partOfRealClass ? `<p class="footer-note" style="text-align:left; margin-top:0;">Part of class ${sub.classCode}. Your leader only ever sees anonymous group totals, never this screen.</p>` : ""}
     <div class="card">
       <div class="score-row" style="border-bottom:1.5px solid var(--line); margin-bottom:6px; cursor:default;">
         <span class="chevron"></span>
@@ -592,46 +585,162 @@ function resultsView(){
   `;
 }
 
-async function loadAggregate(code){
-  state.aggLoading = true;
-  state.aggError = "";
+// ---------------------------------------------------------------------------
+// Leader login + dashboard
+// ---------------------------------------------------------------------------
+
+async function checkLeaderSession(){
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(session){
+    const { data: allowed, error } = await supabaseClient.rpc("is_current_user_allowlisted_leader");
+    if(!error && allowed){
+      state.isLeaderAuthed = true;
+    } else {
+      await supabaseClient.auth.signOut();
+      state.isLeaderAuthed = false;
+    }
+  } else {
+    state.isLeaderAuthed = false;
+  }
+  state.leaderChecking = false;
+
+  const justArrivedFromEmailLink = window.location.hash.includes("access_token");
+  if(state.isLeaderAuthed && (justArrivedFromEmailLink || state.view === "leaderLogin")){
+    state.view = "leaderDash";
+    await loadLeaderGroups();
+  } else {
+    render();
+  }
+}
+
+function leaderLoginView(){
+  if(state.leaderChecking){
+    return `<p class="eyebrow">Leader login</p><h2 class="section-title">Checking your session&hellip;</h2>`;
+  }
+  if(state.isLeaderAuthed){
+    return `
+      <button class="backlink" data-go="home">&#8592; Back</button>
+      <p class="lede">You're already signed in.</p>
+      <button class="btn" id="goDashBtn">Open leader dashboard</button>
+    `;
+  }
+  return `
+    <button class="backlink" data-go="home">&#8592; Back</button>
+    <p class="eyebrow">Leader login</p>
+    <h2 class="section-title">Sign in with email</h2>
+    <p class="lede" style="margin-top:6px;">Enter your email and we'll send a one-time sign-in link — no password needed. Access is limited to approved class leaders.</p>
+    ${state.leaderLoginSent ? `
+      <div class="banner">Check <strong>${state.leaderEmail}</strong> for a sign-in link. You can close this tab.</div>
+    ` : `
+      <div class="card">
+        <label class="field-label">Email address</label>
+        <input type="email" id="leaderEmailInput" placeholder="you@example.com" value="${state.leaderEmail}">
+      </div>
+      ${state.leaderLoginError ? `<div class="error-banner">${state.leaderLoginError}</div>` : ""}
+      <button class="btn" id="sendMagicLinkBtn" ${state.leaderLoginSending ? "disabled" : ""}>
+        ${state.leaderLoginSending ? "Sending…" : "Send login link"}
+      </button>
+    `}
+  `;
+}
+
+function leaderDashView(){
+  if(state.groupsLoading){
+    return `<p class="eyebrow">Leader dashboard</p><h2 class="section-title">Loading groups&hellip;</h2>`;
+  }
+  if(state.groupsError){
+    return `<p class="eyebrow">Leader dashboard</p><div class="error-banner">${state.groupsError}</div><button class="btn ghost" id="refreshGroupsBtn">Try again</button>`;
+  }
+
+  const groups = state.groups || [];
+  const rows = groups.map(g => `
+    <button class="choice-btn" data-view-group="${g.code}">
+      <span>${g.label || g.code}${g.exclude_from_summary ? ' <span class="sub">Excluded from All Groups</span>' : `<span class="sub">${g.submission_count} submission${g.submission_count===1?"":"s"}</span>`}</span>
+      <span class="arrow">&#8594;</span>
+    </button>
+  `).join("");
+
+  return `
+    <button class="backlink" id="leaderLogoutBtn">&#8592; Log out</button>
+    <p class="eyebrow">Leader dashboard</p>
+    <h1 class="display">Where every <em>group</em> stands.</h1>
+    <div class="choice-row">
+      <button class="choice-btn" data-view-group="ALL">
+        <span>All Groups<span class="sub">Combined results across every group</span></span>
+        <span class="arrow">&#8594;</span>
+      </button>
+      ${rows}
+    </div>
+    <div class="card" style="margin-top:20px;">
+      <h2 class="section-title" style="font-size:16px;">Create a new group</h2>
+      <label class="field-label" style="margin-top:14px;">Group code</label>
+      <input type="text" class="uppercase" id="newGroupCode" placeholder="e.g. 2026-FALL">
+      <label class="field-label" style="margin-top:14px;">Label (optional)</label>
+      <input type="text" class="plain-text" id="newGroupLabel" placeholder="e.g. Fall 2026 class">
+      ${state.newGroupError ? `<div class="error-banner">${state.newGroupError}</div>` : ""}
+      <button class="btn small" id="createGroupBtn" style="margin-top:14px;" ${state.newGroupCreating?"disabled":""}>
+        ${state.newGroupCreating?"Creating…":"Create group"}
+      </button>
+    </div>
+  `;
+}
+
+async function loadLeaderGroups(){
+  state.groupsLoading = true; state.groupsError = "";
   render();
-  const { data, error } = await supabaseClient.rpc("get_class_aggregate", { p_class_code: code });
+  const { data, error } = await supabaseClient.rpc("leader_list_groups");
+  state.groupsLoading = false;
+  if(error){ state.groupsError = "Couldn't load groups just now. Try refreshing."; render(); return; }
+  state.groups = data || [];
+  render();
+}
+
+async function loadLeaderGroupAggregate(code){
+  state.aggLoading = true; state.aggError = ""; state.aggCode = code;
+  render();
+  const call = code === "ALL"
+    ? supabaseClient.rpc("leader_get_all_groups_aggregate")
+    : supabaseClient.rpc("get_class_aggregate", { p_class_code: code });
+  const { data, error } = await call;
   state.aggLoading = false;
   if(error){ state.aggError = "Couldn't load results just now. Try refreshing."; state.aggData = []; render(); return; }
   state.aggData = data || [];
   render();
 }
 
-function facilitatorDashView(){
-  const code = state.facilitatorCode || state.aggCode;
+function leaderGroupView(){
+  const code = state.aggCode;
+  const known = (state.groups || []).find(g => g.code === code);
+  const title = code === "ALL" ? "All Groups" : (known ? (known.label || known.code) : code);
+
   if(state.aggLoading){
-    return `<button class="backlink" data-go="facilitatorSetup">&#8592; Back</button><p class="eyebrow">Class ${code}</p><h2 class="section-title">Loading group results&hellip;</h2>`;
+    return `<button class="backlink" data-go="leaderDash">&#8592; Back</button><p class="eyebrow">${title}</p><h2 class="section-title">Loading group results&hellip;</h2>`;
   }
+
   const subs = state.aggData || [];
   const n = subs.length;
 
   if(state.aggError){
-    return `<button class="backlink" data-go="facilitatorSetup">&#8592; Back</button><p class="eyebrow">Class ${code}</p><div class="error-banner">${state.aggError}</div><button class="btn ghost" id="refreshBtn">Try again</button>`;
+    return `<button class="backlink" data-go="leaderDash">&#8592; Back</button><p class="eyebrow">${title}</p><div class="error-banner">${state.aggError}</div><button class="btn ghost" id="refreshAggBtn">Try again</button>`;
   }
 
   if(n === 0){
     return `
-      <button class="backlink" data-go="facilitatorSetup">&#8592; Back</button>
-      <p class="eyebrow">Class ${code}</p>
+      <button class="backlink" data-go="leaderDash">&#8592; Back</button>
+      <p class="eyebrow">${title}</p>
       <h2 class="section-title">Live group results</h2>
       <div class="empty-state">
         <div class="big">&#9917;</div>
-        <p>No submissions yet. Once people scan the QR code or enter <strong>${code}</strong>, their anonymous results will show up here.</p>
+        <p>No submissions yet.</p>
       </div>
-      <button class="btn ghost" id="refreshBtn">Refresh</button>
+      <button class="btn ghost" id="refreshAggBtn">Refresh</button>
     `;
   }
 
   const bands = [
     { key: "strong", label: "Strong (25)", color: "#6E7660" },
-    { key: "good", label: "Very good (20\u201324)", color: "#8A8F55" },
-    { key: "grow", label: "Room to grow (15\u201319)", color: "#A6822F" },
+    { key: "good", label: "Very good (20–24)", color: "#8A8F55" },
+    { key: "grow", label: "Room to grow (15–19)", color: "#A6822F" },
     { key: "focus", label: "Needs focus (<15)", color: "#9B4A38" }
   ];
 
@@ -651,14 +760,14 @@ function facilitatorDashView(){
   const legend = bands.map(b => `<span class="item"><span class="swatch" style="background:${b.color};"></span>${b.label}</span>`).join("");
 
   return `
-    <button class="backlink" data-go="facilitatorSetup">&#8592; Back to class setup</button>
-    <p class="eyebrow">Class ${code} · ${n} response${n===1?"":"s"}</p>
+    <button class="backlink" data-go="leaderDash">&#8592; Back to dashboard</button>
+    <p class="eyebrow">${title} · ${n} response${n===1?"":"s"}</p>
     <h1 class="display">Where the room <em>stands</em>.</h1>
     <p class="lede">Anonymous, category by category. No names, no way to tell who answered what.</p>
     <div class="card">${rows}<div class="stack-legend">${legend}</div></div>
     <div class="btn-row">
-      <button class="btn ghost" id="refreshBtn">Refresh results</button>
-      <button class="btn ghost" id="exportBtn">Download as .csv</button>
+      <button class="btn ghost" id="refreshAggBtn">Refresh results</button>
+      <button class="btn ghost" id="exportAggBtn">Download as .csv</button>
     </div>
   `;
 }
@@ -674,7 +783,7 @@ function exportCSV(code, subs){
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = `marriage-assessment-class-${code}.csv`;
+  a.href = url; a.download = `marriage-assessment-${code === "ALL" ? "all-groups" : code}.csv`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
@@ -688,17 +797,33 @@ function attachHandlers(){
     el.addEventListener("click", () => { state.view = el.getAttribute("data-go"); render(); });
   });
 
-  const leadClassBtn = document.getElementById("leadClassBtn");
-  if(leadClassBtn) leadClassBtn.addEventListener("click", () => goToFacilitatorSetup(false));
+  // --- take the assessment entry screen ---
+  const wantsClassYes = document.getElementById("wantsClassYes");
+  if(wantsClassYes) wantsClassYes.addEventListener("click", () => { state.wantsClass = true; state.classCodeError = ""; render(); });
 
-  const newClassBtn = document.getElementById("newClassBtn");
-  if(newClassBtn) newClassBtn.addEventListener("click", () => goToFacilitatorSetup(true));
+  const wantsClassNo = document.getElementById("wantsClassNo");
+  if(wantsClassNo) wantsClassNo.addEventListener("click", () => { state.wantsClass = false; state.classCodeError = ""; render(); });
 
-  const codeInput = document.getElementById("codeInput");
   const startBtn = document.getElementById("startBtn");
   if(startBtn){
-    startBtn.addEventListener("click", () => {
-      state.classCode = (codeInput.value || "").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);
+    startBtn.addEventListener("click", async () => {
+      if(state.wantsClass === true){
+        const codeInput = document.getElementById("codeInput");
+        const raw = (codeInput.value || "").toUpperCase().replace(/[^A-Z0-9-]/g,"");
+        state.classCodeInput = raw;
+        if(!raw){ state.classCodeError = "Enter a class code, or choose \"No, just for myself\"."; render(); return; }
+        state.classCodeChecking = true; state.classCodeError = ""; render();
+        const { data, error } = await supabaseClient.rpc("check_group_exists", { p_code: raw });
+        state.classCodeChecking = false;
+        if(error || !data){
+          state.classCodeError = "We couldn't find that class code. Double-check it with your class leader.";
+          render();
+          return;
+        }
+        state.classCode = raw;
+      } else {
+        state.classCode = "GENERAL";
+      }
       state.answers = {}; state.step = 0;
       state.view = "assessment";
       render();
@@ -747,44 +872,91 @@ function attachHandlers(){
     });
   }
 
-  const genQrBtn = document.getElementById("genQrBtn");
-  if(genQrBtn){
-    genQrBtn.addEventListener("click", () => {
-      const input = document.getElementById("shareUrlInput");
-      let base = (input.value || "").trim();
-      if(!base) return;
-      state.qrUrl = base;
-      const sep = base.includes("?") ? "&" : "?";
-      const full = `${base}${sep}class=${state.facilitatorCode}`;
-      document.getElementById("qrLinkText").textContent = full;
-      const holder = document.getElementById("qrHolder");
-      holder.style.display = "block";
-      holder.innerHTML = `<img alt="QR code" style="border-radius:12px;" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(full)}">`;
+  // --- leader login ---
+  const leaderLoginLink = document.getElementById("leaderLoginLink");
+  if(leaderLoginLink){
+    leaderLoginLink.addEventListener("click", () => {
+      if(state.isLeaderAuthed){ state.view = "leaderDash"; loadLeaderGroups(); }
+      else { state.view = "leaderLogin"; render(); }
     });
   }
 
-  const openDashBtn = document.getElementById("openDashBtn");
-  if(openDashBtn){
-    openDashBtn.addEventListener("click", () => {
-      state.aggCode = state.facilitatorCode;
-      state.view = "facilitatorDash";
-      loadAggregate(state.facilitatorCode);
+  const goDashBtn = document.getElementById("goDashBtn");
+  if(goDashBtn) goDashBtn.addEventListener("click", () => { state.view = "leaderDash"; loadLeaderGroups(); });
+
+  const sendMagicLinkBtn = document.getElementById("sendMagicLinkBtn");
+  if(sendMagicLinkBtn){
+    sendMagicLinkBtn.addEventListener("click", async () => {
+      const emailInput = document.getElementById("leaderEmailInput");
+      const email = (emailInput.value || "").trim();
+      if(!email){ state.leaderLoginError = "Enter an email address."; render(); return; }
+      state.leaderLoginSending = true; state.leaderLoginError = ""; render();
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname }
+      });
+      state.leaderLoginSending = false;
+      if(error){ state.leaderLoginError = "Something went wrong sending that link. Try again."; render(); return; }
+      state.leaderEmail = email;
+      state.leaderLoginSent = true;
+      render();
     });
   }
 
-  const refreshBtn = document.getElementById("refreshBtn");
-  if(refreshBtn) refreshBtn.addEventListener("click", () => loadAggregate(state.aggCode || state.facilitatorCode));
+  // --- leader dashboard ---
+  const leaderLogoutBtn = document.getElementById("leaderLogoutBtn");
+  if(leaderLogoutBtn){
+    leaderLogoutBtn.addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      state.isLeaderAuthed = false;
+      state.view = "home";
+      render();
+    });
+  }
 
-  const exportBtn = document.getElementById("exportBtn");
-  if(exportBtn) exportBtn.addEventListener("click", () => exportCSV(state.aggCode || state.facilitatorCode, state.aggData || []));
+  const refreshGroupsBtn = document.getElementById("refreshGroupsBtn");
+  if(refreshGroupsBtn) refreshGroupsBtn.addEventListener("click", loadLeaderGroups);
+
+  document.querySelectorAll("[data-view-group]").forEach(el => {
+    el.addEventListener("click", () => {
+      const code = el.getAttribute("data-view-group");
+      state.view = "leaderGroup";
+      loadLeaderGroupAggregate(code);
+    });
+  });
+
+  const createGroupBtn = document.getElementById("createGroupBtn");
+  if(createGroupBtn){
+    createGroupBtn.addEventListener("click", async () => {
+      const codeEl = document.getElementById("newGroupCode");
+      const labelEl = document.getElementById("newGroupLabel");
+      const code = (codeEl.value || "").toUpperCase().replace(/[^A-Z0-9-]/g,"");
+      const label = (labelEl.value || "").trim();
+      if(!code){ state.newGroupError = "Enter a code for the new group."; render(); return; }
+      state.newGroupCreating = true; state.newGroupError = ""; render();
+      const { error } = await supabaseClient.rpc("leader_create_group", { p_code: code, p_label: label || null });
+      state.newGroupCreating = false;
+      if(error){
+        state.newGroupError = (error.message || "").includes("code_taken")
+          ? `"${code}" is already in use — pick another code.`
+          : "Something went wrong creating that group. Try again.";
+        render();
+        return;
+      }
+      await loadLeaderGroups();
+    });
+  }
+
+  // --- leader group / all-groups aggregate view ---
+  const refreshAggBtn = document.getElementById("refreshAggBtn");
+  if(refreshAggBtn) refreshAggBtn.addEventListener("click", () => loadLeaderGroupAggregate(state.aggCode));
+
+  const exportAggBtn = document.getElementById("exportAggBtn");
+  if(exportAggBtn) exportAggBtn.addEventListener("click", () => exportCSV(state.aggCode, state.aggData || []));
 }
 
-if(state.classCode){
-  state.view = "assessment";
-  state.answers = {};
-  state.step = 0;
-}
 render();
+checkLeaderSession();
 </script>
 </body>
 </html>
