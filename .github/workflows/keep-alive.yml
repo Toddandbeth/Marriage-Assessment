@@ -1,0 +1,18 @@
+name: Keep Supabase project awake
+
+on:
+  schedule:
+    # Runs every Monday at 9am UTC. Supabase free projects pause after 7 days
+    # of no activity, so this just needs to run at least once a week.
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST endpoint
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
