@@ -216,21 +216,21 @@
     .print-summary-heading{ border-top: none; padding-top: 0; }
     .print-detail-heading{ page-break-before: always; break-before: page; }
 
-    .print-summary-grid{ display:block; margin-bottom: 14pt; }
-    .print-cat{ break-inside: avoid; page-break-inside: avoid; border-bottom: 0.5pt solid #ccc; padding: 5pt 0 7pt; }
-    .print-cat-top{ display:flex; justify-content: space-between; align-items: baseline; font-size: 10pt; margin-bottom: 4pt; gap: 6pt; }
+    .print-summary-grid{ display:block; margin-bottom: 10pt; }
+    .print-cat{ break-inside: avoid; page-break-inside: avoid; border-bottom: 0.5pt solid #ccc; padding: 3pt 0 3pt; }
+    .print-cat-top{ display:flex; justify-content: space-between; align-items: baseline; font-size: 10pt; margin-bottom: 2pt; gap: 6pt; }
     .print-cat-name{ font-weight: 600; }
     .print-cat-band{ font-size: 10pt; font-weight: 700; white-space: nowrap; }
     .print-cat-bottom{ display:flex; align-items:center; gap: 10pt; }
-    .print-bar-track{ flex:1; height: 7pt; background: #e5e2d6; border-radius: 3pt; overflow: hidden; }
+    .print-bar-track{ flex:1; height: 6pt; background: #e5e2d6; border-radius: 3pt; overflow: hidden; }
     .print-bar-fill{ height: 100%; }
     .print-cat-score{ font-size: 10pt; font-weight: 600; width: 36pt; text-align: right; flex-shrink: 0; }
 
-    .print-highlight{ font-size: 10pt; line-height: 1.4; margin: 0 0 4pt; }
+    .print-highlight{ font-size: 10pt; line-height: 1.3; margin: 0; }
 
-    .print-detail-page{ display:grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; }
+    .print-detail-page{ display:flex; gap: 0 18pt; }
     .print-detail-page-break{ page-break-before: always; break-before: page; }
-    .print-detail-col{ min-width: 0; }
+    .print-detail-col{ flex: 1; min-width: 0; }
     .print-detail-cat{ break-inside: avoid; page-break-inside: avoid; margin-bottom: 11pt; }
     .print-detail-cat-name{ font-weight: 700; font-size: 10pt; margin-bottom: 4pt; border-bottom: 0.5pt solid #999; padding-bottom: 3pt; }
     .print-stmt{ display:flex; justify-content: space-between; align-items: baseline; gap: 8pt; padding: 3pt 0; font-size: 10pt; line-height: 1.3; }
