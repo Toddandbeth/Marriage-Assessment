@@ -182,11 +182,65 @@
   .cat-row-meta .band-tag{ flex-shrink:0; width: 88px; text-align:center; }
   .cat-row .detail-panel{ padding: 0 16px 18px; }
 
+  .guidance-block{ margin-top: 28px; }
+  .guidance-title{ font-weight: 700; font-size: 15px; margin: 0 0 6px; }
+  .guidance-body{ font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 22px; }
+  .guidance-body:last-child{ margin-bottom: 0; }
+
   @media print{
     .backlink, #printBtn, .btn, .choice-row, .banner{ display:none !important; }
     body{ background:#fff; }
     .card{ box-shadow:none; border:1px solid #ccc; }
   }
+
+  .print-sheet{ display:none; }
+
+  @media print{
+    @page{ size: letter; margin: 0.5in; }
+    #app{ max-width: none; padding: 0; }
+    .screen-only{ display:none !important; }
+    .print-sheet{ display:block !important; font-family: 'Inter', Arial, sans-serif; color:#141310; }
+
+    .print-header{ border-bottom: 1.5pt solid #2b2a24; padding-bottom: 8pt; margin-bottom: 14pt; }
+    .print-title{ font-family:'Fraunces', Georgia, serif; font-size: 16pt; font-weight: 700; margin: 0 0 4pt; }
+    .print-subline{ display:flex; justify-content: space-between; align-items: baseline; font-size: 10pt; }
+    .print-overall strong{ font-size: 15pt; color: var(--sage-deep); margin-left: 4pt; }
+
+    .print-summary-heading, .print-detail-heading{
+      font-family:'Fraunces', Georgia, serif; font-weight: 700; font-size: 13pt;
+      margin: 0 0 8pt; border-top: 1pt solid #2b2a24; padding-top: 10pt;
+    }
+    .print-summary-heading{ border-top: none; padding-top: 0; }
+
+    .print-summary-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 7pt 18pt; margin-bottom: 14pt; }
+    .print-cat{ break-inside: avoid; page-break-inside: avoid; border-bottom: 0.5pt solid #ccc; padding-bottom: 6pt; }
+    .print-cat-top{ display:flex; justify-content: space-between; align-items: baseline; font-size: 10pt; margin-bottom: 4pt; gap: 6pt; }
+    .print-cat-name{ font-weight: 600; }
+    .print-cat-band{ font-size: 10pt; font-weight: 700; white-space: nowrap; }
+    .print-cat-bottom{ display:flex; align-items:center; gap: 8pt; }
+    .print-bar-track{ flex:1; height: 6pt; background: #e5e2d6; border-radius: 3pt; overflow: hidden; }
+    .print-bar-fill{ height: 100%; }
+    .print-cat-score{ font-size: 10pt; font-weight: 600; width: 36pt; text-align: right; flex-shrink: 0; }
+
+    .print-highlight{ font-size: 10pt; line-height: 1.4; margin: 0 0 4pt; }
+
+    .print-detail-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; }
+    .print-detail-cat{ break-inside: avoid; page-break-inside: avoid; margin-bottom: 11pt; }
+    .print-detail-cat-name{ font-weight: 700; font-size: 10pt; margin-bottom: 4pt; border-bottom: 0.5pt solid #999; padding-bottom: 3pt; }
+    .print-stmt{ display:flex; justify-content: space-between; align-items: baseline; gap: 8pt; padding: 3pt 0; font-size: 10pt; line-height: 1.3; }
+    .print-stmt-text{ flex:1; }
+    .print-stmt-dots{ display:flex; gap: 2.5pt; flex-shrink:0; margin-top:1.5pt; }
+    .print-dot{ width: 6pt; height: 6pt; border-radius: 50%; background: #ddd; display:inline-block; }
+    .print-dot.filled{ background: var(--sage-deep); }
+
+    .print-guidance{ margin-top: 4pt; border-top: 1pt solid #2b2a24; padding-top: 10pt; }
+    .print-guidance-title{ font-weight: 700; font-size: 11pt; margin: 0 0 4pt; }
+    .print-guidance-body{ font-size: 10pt; line-height: 1.45; margin: 0 0 11pt; }
+    .print-guidance-body:last-child{ margin-bottom: 0; }
+
+    .print-footer{ margin-top: 14pt; font-size: 10pt; color: #555; text-align:center; }
+  }
+
   @media (prefers-reduced-motion: reduce){ *{ transition: none !important; } }
 </style>
 </head>
@@ -295,6 +349,12 @@ function bandFor(score){
   return { key:"focus", label: "Needs focus", color: "#9B4A38" };
 }
 
+function formatPrintDate(iso){
+  try{
+    return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  } catch(e){ return ""; }
+}
+
 function makeRetrievalCode(){
   const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   const bytes = new Uint32Array(10);
@@ -368,7 +428,7 @@ function render(){
 function homeView(){
   return `
     <h1 class="display">Intentional Marriage Assessment</h1>
-    <p class="lede">Answer sixty statements across twelve areas of marriage. You'll get a private code to come back to your own results any time, and if you're part of a class, your leader can see the group's patterns without ever seeing anyone's individual answers.</p>
+    <p class="lede">Marriage is a journey that takes intentional effort, love, and communication. This assessment walks you through twelve key areas of a thriving marriage, from communication and intimacy to finances, faith, and family. It's not about a perfect score. It's about honest reflection that opens the door to a real conversation with your spouse.</p>
     <div class="choice-row">
       <button class="choice-btn" data-go="startChoice">
         <span>Take the Assessment<span class="sub">Start the sixty-statement assessment</span></span>
@@ -389,7 +449,9 @@ function startChoiceView(){
   return `
     <button class="backlink" data-go="home">&#8592; Back</button>
     <p class="eyebrow">Take the assessment</p>
-    <h2 class="section-title">Are you taking this as part of a class?</h2>
+    <h2 class="section-title">Before You Begin</h2>
+    <p class="lede" style="margin-top:6px;">You'll rate sixty statements across twelve areas of your marriage, from strongly disagree to strongly agree. Take this on your own, separately from your spouse, and hold off on comparing notes until you've both finished — that's what makes the conversation afterward honest instead of reactive. This isn't about winning or losing. Every couple has somewhere to grow. Approach it with grace toward yourself and toward each other.</p>
+    <h2 class="section-title" style="margin-top:22px;">Are you taking this as part of a class?</h2>
     <p class="lede" style="margin-top:6px;">Your leader only ever sees anonymous group totals, never your individual answers.</p>
     <div class="choice-row" style="margin-top:6px;">
       <button class="choice-btn ${state.wantsClass===true ? 'selected-choice':''}" id="wantsClassYes">
@@ -573,39 +635,109 @@ function resultsView(){
   const mailBody = encodeURIComponent(`Here is my private results code for the Intentional Marriage Assessment: ${sub.retrievalCode}\n\nKeep this to look up your results again any time.`);
   const partOfRealClass = sub.classCode && sub.classCode !== "GENERAL";
 
+  const howToUseTitle = "How to Use This Information";
+  const howToUseBody = "When you sit down together, look at each category rather than just the total. Notice where your scores differ, especially anywhere ten points or more apart, that usually means you're seeing the same part of your marriage very differently. Stay curious, not defensive. Celebrate what's already strong before turning to what needs work.";
+  const nextStepsTitle = "Next Steps";
+  const nextStepsBody = "Pick one or two areas to work on over the next few months, not all twelve at once. What's one small change you could both make this week? A strong marriage is built over time, not fixed in one conversation. Consider working through Intentional Marriage together, completing the 30-Day Intentional Marriage Challenge, or joining a group through your church.";
+  const footerNote = "For a deeper walkthrough of these results together, see Intentional Marriage or the 30-Day Intentional Marriage Challenge at IntentionalMinistries.com.";
+
+  const printSummaryRows = CATEGORIES.map(cat => {
+    const score = scores[cat.name];
+    const band = bandFor(score);
+    const pct = Math.round((score/25)*100);
+    return `
+      <div class="print-cat">
+        <div class="print-cat-top">
+          <span class="print-cat-name">${cat.name}</span>
+          <span class="print-cat-band" style="color:${band.color};">${band.label}</span>
+        </div>
+        <div class="print-cat-bottom">
+          <div class="print-bar-track"><div class="print-bar-fill" style="width:${pct}%; background:${band.color};"></div></div>
+          <span class="print-cat-score">${score}/25</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const printDetailCats = CATEGORIES.map(cat => `
+    <div class="print-detail-cat">
+      <div class="print-detail-cat-name">${cat.name}</div>
+      ${cat.statements.map((s,i) => {
+        const v = (answers[cat.name] && answers[cat.name][i]) || 0;
+        const dots = [1,2,3,4,5].map(d => `<span class="print-dot ${d<=v?'filled':''}"></span>`).join("");
+        return `<div class="print-stmt"><span class="print-stmt-text">${s}</span><span class="print-stmt-dots">${dots}</span></div>`;
+      }).join("")}
+    </div>
+  `).join("");
+
   return `
-    ${!sub.justSubmitted ? `<button class="backlink" data-go="home">&#8592; Back</button>` : ""}
-    <p class="eyebrow">Your results</p>
-    <h1 class="display">Here's where you <em>are</em> right now.</h1>
-    <p class="lede">This isn't a grade, it's a starting point for a conversation with your spouse. Tap into any category below to see exactly which statements shaped that score, then sit down together and compare.</p>
-    ${sub.justSubmitted ? `
-      <div class="banner">
-        <strong>Save this code, it's the only way back in:</strong><br>
-        <span class="code-pill private">${sub.retrievalCode}</span><br>
-        Nobody else, including your class leader, can look up your results without it. Write it down, screenshot it, or email it to yourself below.
+    <div class="screen-only">
+      ${!sub.justSubmitted ? `<button class="backlink" data-go="home">&#8592; Back</button>` : ""}
+      <p class="eyebrow">Your results</p>
+      <h1 class="display">Here's where you <em>are</em> right now.</h1>
+      <p class="lede">This isn't a grade, it's a starting point for a conversation with your spouse. Tap into any category below to see exactly which statements shaped that score, then sit down together and compare.</p>
+      ${sub.justSubmitted ? `
+        <div class="banner">
+          <strong>Save this code, it's the only way back in:</strong><br>
+          <span class="code-pill private">${sub.retrievalCode}</span><br>
+          Nobody else, including your class leader, can look up your results without it. Write it down, screenshot it, or email it to yourself below.
+        </div>
+        <div class="btn-row" style="margin-bottom:22px;">
+          <a class="btn small ghost" style="text-decoration:none;" href="mailto:?subject=My%20assessment%20code&body=${mailBody}">Email this code to myself</a>
+          <a class="btn small ghost" style="text-decoration:none;" href="sms:&body=${mailBody}">Text this code to myself</a>
+        </div>
+      ` : ""}
+      ${partOfRealClass ? `<p class="footer-note" style="text-align:left; margin-top:0;">Part of class ${sub.classCode}. Your leader only ever sees anonymous group totals, never this screen.</p>` : ""}
+      <p class="footer-note" style="text-align:left; margin:0 0 8px;">Tap any category to see individual answers.</p>
+      <div class="card">
+        <div class="score-row" style="border-bottom:1.5px solid var(--line); margin-bottom:6px; cursor:default;">
+          <span class="chevron"></span>
+          <div class="name" style="font-family:'Fraunces',serif; font-size:16px;">Overall</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round((total/maxTotal)*100)}%; background:var(--sage-deep);"></div></div>
+          <div class="val">${total}/${maxTotal}</div>
+        </div>
+        ${rows}
       </div>
-      <div class="btn-row" style="margin-bottom:22px;">
-        <a class="btn small ghost" style="text-decoration:none;" href="mailto:?subject=My%20assessment%20code&body=${mailBody}">Email this code to myself</a>
-        <a class="btn small ghost" style="text-decoration:none;" href="sms:&body=${mailBody}">Text this code to myself</a>
+      <p class="lede" style="margin-top:4px;">The strongest area right now is <strong>${highest[0]}</strong>. The area that could use the most attention is <strong>${lowest[0]}</strong>.</p>
+      <div class="btn-row">
+        <button class="btn" id="printBtn">Print or save as PDF</button>
+        <button class="btn ghost" data-go="home">Done</button>
       </div>
-    ` : ""}
-    ${partOfRealClass ? `<p class="footer-note" style="text-align:left; margin-top:0;">Part of class ${sub.classCode}. Your leader only ever sees anonymous group totals, never this screen.</p>` : ""}
-    <p class="footer-note" style="text-align:left; margin:0 0 8px;">Tap any category to see individual answers.</p>
-    <div class="card">
-      <div class="score-row" style="border-bottom:1.5px solid var(--line); margin-bottom:6px; cursor:default;">
-        <span class="chevron"></span>
-        <div class="name" style="font-family:'Fraunces',serif; font-size:16px;">Overall</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round((total/maxTotal)*100)}%; background:var(--sage-deep);"></div></div>
-        <div class="val">${total}/${maxTotal}</div>
+      <div class="guidance-block">
+        <p class="guidance-title">${howToUseTitle}</p>
+        <p class="guidance-body">${howToUseBody}</p>
+        <p class="guidance-title">${nextStepsTitle}</p>
+        <p class="guidance-body">${nextStepsBody}</p>
       </div>
-      ${rows}
+      <p class="footer-note">${footerNote}</p>
     </div>
-    <p class="lede" style="margin-top:4px;">The strongest area right now is <strong>${highest[0]}</strong>. The area that could use the most attention is <strong>${lowest[0]}</strong>.</p>
-    <div class="btn-row">
-      <button class="btn" id="printBtn">Print or save as PDF</button>
-      <button class="btn ghost" data-go="home">Done</button>
+
+    <div class="print-sheet">
+      <div class="print-header">
+        <div class="print-title">Intentional Marriage Assessment — Results</div>
+        <div class="print-subline">
+          <span>${formatPrintDate(sub.createdAt)}</span>
+          <span class="print-overall">Overall: <strong>${total} / ${maxTotal}</strong></span>
+        </div>
+      </div>
+
+      <div class="print-summary-heading">Category Summary</div>
+      <div class="print-summary-grid">${printSummaryRows}</div>
+
+      <p class="print-highlight">The strongest area right now is <strong>${highest[0]}</strong>. The area that could use the most attention is <strong>${lowest[0]}</strong>.</p>
+
+      <div class="print-detail-heading">Detailed Answers</div>
+      <div class="print-detail-grid">${printDetailCats}</div>
+
+      <div class="print-guidance">
+        <p class="print-guidance-title">${howToUseTitle}</p>
+        <p class="print-guidance-body">${howToUseBody}</p>
+        <p class="print-guidance-title">${nextStepsTitle}</p>
+        <p class="print-guidance-body">${nextStepsBody}</p>
+      </div>
+
+      <div class="print-footer">${footerNote}</div>
     </div>
-    <p class="footer-note">For a deeper walkthrough of these results together, see Intentional Marriage or the 30-Day Intentional Marriage Challenge at IntentionalMinistries.com.</p>
   `;
 }
 
