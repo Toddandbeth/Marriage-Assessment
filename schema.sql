@@ -53,9 +53,9 @@ grant execute on function public.get_submission_by_code(text) to anon;
 -- Returns only category scores and a timestamp for a given class code.
 -- Never returns retrieval_code, email, or per-question answers, so an
 -- individual's specific responses can never be reconstructed from this.
--- Now requires an authenticated, allowlisted leader (see leader section
--- below) -- no longer callable by anyone who just knows a class code.
-create or replace function public.get_class_aggregate(p_class_code text)
+-- Now requires the shared leader access code (see leader section below)
+-- on every call -- no longer callable by anyone who just knows a class code.
+create or replace function public.get_class_aggregate(p_class_code text, p_access_code text)
 returns table (
   scores jsonb,
   created_at timestamptz
@@ -65,7 +65,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if not public.is_current_user_allowlisted_leader() then
+  if not public.verify_leader_code(p_access_code) then
     raise exception 'not authorized' using errcode = '42501';
   end if;
 
@@ -76,11 +76,8 @@ begin
 end;
 $$;
 
-revoke all on function public.get_class_aggregate(text) from anon;
-grant execute on function public.get_class_aggregate(text) to authenticated;
-
 -- ============================================================================
--- Groups + leader login
+-- Groups + leader access
 -- ============================================================================
 -- A "group" is a named bucket submissions can belong to: a real class code a
 -- leader created ahead of time, or the always-existing "GENERAL" bucket for
@@ -96,7 +93,7 @@ insert into public.groups (code, label)
 values ('GENERAL', 'General (no class)')
 on conflict (code) do nothing;
 
--- Nobody -- not even a signed-in leader -- reads this table directly.
+-- Nobody -- not even a leader -- reads this table directly.
 -- All access goes through the narrow functions below, same philosophy as
 -- the submissions table above.
 alter table public.groups enable row level security;
@@ -114,37 +111,43 @@ $$;
 
 grant execute on function public.check_group_exists(text) to anon;
 
--- The leader allowlist: only emails in this table can ever be treated as a
--- leader, no matter who successfully signs in via magic link. RLS is on
--- with no policies, so this table cannot be read directly by anyone --
--- only checked internally by is_current_user_allowlisted_leader() below.
--- Add/remove leaders any time with, e.g.:
---   insert into public.leader_allowlist (email) values ('someone@example.com');
-create table if not exists public.leader_allowlist (
-  email text primary key
-);
+-- Leader access is a single shared 8-digit code -- no email, no accounts,
+-- no waiting on a login link. The code itself lives in Supabase Vault
+-- (never in this file, never in the frontend); this function is the only
+-- thing in the whole database allowed to read it, and it never returns
+-- the code itself, only whether a guess matched.
+-- This replaces the earlier email-allowlist approach entirely.
+drop function if exists public.get_class_aggregate(text);
+drop function if exists public.leader_list_groups();
+drop function if exists public.leader_create_group(text, text);
+drop function if exists public.leader_get_all_groups_aggregate();
+drop function if exists public.is_current_user_allowlisted_leader();
+drop table if exists public.leader_allowlist;
 
-alter table public.leader_allowlist enable row level security;
-
--- The one real gate every leader-only function below checks first. Matching
--- is case-insensitive since email addresses aren't case sensitive in practice.
-create or replace function public.is_current_user_allowlisted_leader()
+create or replace function public.verify_leader_code(p_access_code text)
 returns boolean
-language sql
+language plpgsql
 security definer
 set search_path = public
 as $$
-  select exists (
-    select 1 from public.leader_allowlist
-    where lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
-  );
+declare
+  v_secret text;
+begin
+  select decrypted_secret into v_secret
+  from vault.decrypted_secrets
+  where name = 'leader_access_code'
+  limit 1;
+
+  return v_secret is not null and v_secret <> '' and p_access_code = v_secret;
+end;
 $$;
 
-grant execute on function public.is_current_user_allowlisted_leader() to authenticated;
+grant execute on function public.verify_leader_code(text) to anon;
+grant execute on function public.get_class_aggregate(text, text) to anon;
 
 -- Lists every known group (including ones with zero submissions so far,
 -- like a group a leader just created ahead of a class) with a live count.
-create or replace function public.leader_list_groups()
+create or replace function public.leader_list_groups(p_access_code text)
 returns table (
   code text,
   label text,
@@ -157,7 +160,7 @@ security definer
 set search_path = public
 as $$
 begin
-  if not public.is_current_user_allowlisted_leader() then
+  if not public.verify_leader_code(p_access_code) then
     raise exception 'not authorized' using errcode = '42501';
   end if;
 
@@ -170,11 +173,11 @@ begin
 end;
 $$;
 
-grant execute on function public.leader_list_groups() to authenticated;
+grant execute on function public.leader_list_groups(text) to anon;
 
 -- Creates a new group with a leader-chosen code. Fails clearly if the code
 -- is already taken so the frontend can ask for a different one.
-create or replace function public.leader_create_group(p_code text, p_label text default null)
+create or replace function public.leader_create_group(p_code text, p_label text, p_access_code text)
 returns void
 language plpgsql
 security definer
@@ -183,7 +186,7 @@ as $$
 declare
   v_code text := upper(trim(p_code));
 begin
-  if not public.is_current_user_allowlisted_leader() then
+  if not public.verify_leader_code(p_access_code) then
     raise exception 'not authorized' using errcode = '42501';
   end if;
 
@@ -199,19 +202,19 @@ begin
 end;
 $$;
 
-grant execute on function public.leader_create_group(text, text) to authenticated;
+grant execute on function public.leader_create_group(text, text, text) to anon;
 
 -- Combined aggregate across every group that isn't flagged excluded
 -- (e.g. the internal TEST bucket, see the migration file for this project).
 -- Same shape as get_class_aggregate so the frontend can reuse one report view.
-create or replace function public.leader_get_all_groups_aggregate()
+create or replace function public.leader_get_all_groups_aggregate(p_access_code text)
 returns table (scores jsonb, created_at timestamptz)
 language plpgsql
 security definer
 set search_path = public
 as $$
 begin
-  if not public.is_current_user_allowlisted_leader() then
+  if not public.verify_leader_code(p_access_code) then
     raise exception 'not authorized' using errcode = '42501';
   end if;
 
@@ -223,4 +226,4 @@ begin
 end;
 $$;
 
-grant execute on function public.leader_get_all_groups_aggregate() to authenticated;
+grant execute on function public.leader_get_all_groups_aggregate(text) to anon;

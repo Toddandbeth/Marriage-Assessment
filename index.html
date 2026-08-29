@@ -161,6 +161,27 @@
   .footer-note a{ color: var(--ink-soft); }
   .btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
 
+  .resource-link{
+    display:inline-flex; align-items:center; gap:5px; font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px; letter-spacing: 0.04em; color: var(--sage-deep); font-weight: 600; text-decoration: none;
+  }
+  .resource-link:hover{ text-decoration: underline; }
+
+  .cat-row{ border-bottom: 1px solid var(--line); border-radius: 10px; }
+  .cat-row:last-child{ border-bottom: none; }
+  .cat-row.cat-row-open{ background: rgba(75,82,64,0.07); border-bottom-color: transparent; }
+  .cat-row-head{ padding: 14px 16px; cursor: pointer; }
+  .cat-row-name{
+    font-weight: 600; font-size: 14.5px; margin: 0 0 8px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .cat-row-meta{ display:flex; align-items:center; gap: 12px; }
+  .cat-row-meta .bar-track{ flex: 1; height: 10px; background: var(--card); border-radius: 999px; overflow:hidden; }
+  .cat-row-meta .bar-fill{ height: 100%; border-radius: 999px; }
+  .cat-row-meta .val{ font-family:'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px; width: 44px; text-align:right; color: var(--ink-soft); flex-shrink:0; }
+  .cat-row-meta .band-tag{ flex-shrink:0; width: 88px; text-align:center; }
+  .cat-row .detail-panel{ padding: 0 16px 18px; }
+
   @media print{
     .backlink, #printBtn, .btn, .choice-row, .banner{ display:none !important; }
     body{ background:#fff; }
@@ -284,6 +305,7 @@ function makeRetrievalCode(){
 }
 
 const IM_LINK = "https://www.intentionalministries.com/marriage";
+const LEADER_CODE_KEY = "fcm-marriage-leader-code";
 
 const state = {
   view: "home",
@@ -305,12 +327,12 @@ const state = {
   classCodeError: "",
   classCodeChecking: false,
 
-  // leader login
-  isLeaderAuthed: false,
+  // leader access
+  leaderAccessCode: localStorage.getItem(LEADER_CODE_KEY) || "",
+  leaderVerified: false,
   leaderChecking: true,
-  leaderEmail: "",
-  leaderLoginSent: false,
-  leaderLoginSending: false,
+  leaderCodeInput: "",
+  leaderVerifying: false,
   leaderLoginError: "",
 
   // leader dashboard
@@ -345,8 +367,7 @@ function render(){
 
 function homeView(){
   return `
-    <p class="eyebrow">Intentional Ministries · Digital Edition</p>
-    <h1 class="display">The <em>Marriage Assessment</em>, made for a class.</h1>
+    <h1 class="display">Intentional Marriage Assessment</h1>
     <p class="lede">Answer sixty statements across twelve areas of marriage. You'll get a private code to come back to your own results any time, and if you're part of a class, your leader can see the group's patterns without ever seeing anyone's individual answers.</p>
     <div class="choice-row">
       <button class="choice-btn" data-go="startChoice">
@@ -359,7 +380,7 @@ function homeView(){
       </button>
     </div>
     <p class="footer-note">Individual answers are never shown to a class leader. Only anonymous category totals are added to the group view.</p>
-    <p class="footer-note"><a href="${IM_LINK}" target="_blank" rel="noopener">&#8592; Back to Intentional Ministries</a></p>
+    <p class="footer-note"><a class="resource-link" href="${IM_LINK}" target="_blank" rel="noopener">Intentional Marriage Resources &#8599;</a></p>
     <p class="footer-note" style="margin-top:10px;"><button class="tiny-link" id="leaderLoginLink">Leader Login</button></p>
   `;
 }
@@ -533,13 +554,14 @@ function resultsView(){
       </div>
     ` : "";
     return `
-      <div>
-        <div class="score-row" data-toggle="${cat.name}">
-          <span class="chevron">${isOpen ? "▾" : "▸"}</span>
-          <div class="name">${cat.name}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${band.color};"></div></div>
-          <div class="val">${score}/25</div>
-          <div class="band-tag" style="background:${band.color};">${band.label}</div>
+      <div class="cat-row ${isOpen ? 'cat-row-open' : ''}">
+        <div class="cat-row-head" data-toggle="${cat.name}">
+          <div class="cat-row-name">${cat.name}</div>
+          <div class="cat-row-meta">
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${band.color};"></div></div>
+            <div class="val">${score}/25</div>
+            <div class="band-tag" style="background:${band.color};">${band.label}</div>
+          </div>
         </div>
         ${detail}
       </div>
@@ -564,9 +586,11 @@ function resultsView(){
       </div>
       <div class="btn-row" style="margin-bottom:22px;">
         <a class="btn small ghost" style="text-decoration:none;" href="mailto:?subject=My%20assessment%20code&body=${mailBody}">Email this code to myself</a>
+        <a class="btn small ghost" style="text-decoration:none;" href="sms:&body=${mailBody}">Text this code to myself</a>
       </div>
     ` : ""}
     ${partOfRealClass ? `<p class="footer-note" style="text-align:left; margin-top:0;">Part of class ${sub.classCode}. Your leader only ever sees anonymous group totals, never this screen.</p>` : ""}
+    <p class="footer-note" style="text-align:left; margin:0 0 8px;">Tap any category to see individual answers.</p>
     <div class="card">
       <div class="score-row" style="border-bottom:1.5px solid var(--line); margin-bottom:6px; cursor:default;">
         <span class="chevron"></span>
@@ -586,26 +610,21 @@ function resultsView(){
 }
 
 // ---------------------------------------------------------------------------
-// Leader login + dashboard
+// Leader access (shared 8-digit code) + dashboard
 // ---------------------------------------------------------------------------
 
-async function checkLeaderSession(){
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if(session){
-    const { data: allowed, error } = await supabaseClient.rpc("is_current_user_allowlisted_leader");
-    if(!error && allowed){
-      state.isLeaderAuthed = true;
-    } else {
-      await supabaseClient.auth.signOut();
-      state.isLeaderAuthed = false;
+async function initLeaderAccess(){
+  if(state.leaderAccessCode){
+    const { data, error } = await supabaseClient.rpc("verify_leader_code", { p_access_code: state.leaderAccessCode });
+    state.leaderVerified = !error && data === true;
+    if(!state.leaderVerified){
+      localStorage.removeItem(LEADER_CODE_KEY);
+      state.leaderAccessCode = "";
     }
-  } else {
-    state.isLeaderAuthed = false;
   }
   state.leaderChecking = false;
 
-  const justArrivedFromEmailLink = window.location.hash.includes("access_token");
-  if(state.isLeaderAuthed && (justArrivedFromEmailLink || state.view === "leaderLogin")){
+  if(state.leaderVerified && state.view === "leaderLogin"){
     state.view = "leaderDash";
     await loadLeaderGroups();
   } else {
@@ -615,9 +634,9 @@ async function checkLeaderSession(){
 
 function leaderLoginView(){
   if(state.leaderChecking){
-    return `<p class="eyebrow">Leader login</p><h2 class="section-title">Checking your session&hellip;</h2>`;
+    return `<p class="eyebrow">Leader login</p><h2 class="section-title">Checking access&hellip;</h2>`;
   }
-  if(state.isLeaderAuthed){
+  if(state.leaderVerified){
     return `
       <button class="backlink" data-go="home">&#8592; Back</button>
       <p class="lede">You're already signed in.</p>
@@ -627,20 +646,16 @@ function leaderLoginView(){
   return `
     <button class="backlink" data-go="home">&#8592; Back</button>
     <p class="eyebrow">Leader login</p>
-    <h2 class="section-title">Sign in with email</h2>
-    <p class="lede" style="margin-top:6px;">Enter your email and we'll send a one-time sign-in link — no password needed. Access is limited to approved class leaders.</p>
-    ${state.leaderLoginSent ? `
-      <div class="banner">Check <strong>${state.leaderEmail}</strong> for a sign-in link. You can close this tab.</div>
-    ` : `
-      <div class="card">
-        <label class="field-label">Email address</label>
-        <input type="email" id="leaderEmailInput" placeholder="you@example.com" value="${state.leaderEmail}">
-      </div>
-      ${state.leaderLoginError ? `<div class="error-banner">${state.leaderLoginError}</div>` : ""}
-      <button class="btn" id="sendMagicLinkBtn" ${state.leaderLoginSending ? "disabled" : ""}>
-        ${state.leaderLoginSending ? "Sending…" : "Send login link"}
-      </button>
-    `}
+    <h2 class="section-title">Enter the leader access code</h2>
+    <p class="lede" style="margin-top:6px;">Ask your co-leader if you don't have it.</p>
+    <div class="card">
+      <label class="field-label">Access code</label>
+      <input type="text" class="uppercase" inputmode="numeric" maxlength="8" id="leaderCodeInputEl" placeholder="8-digit code" value="${state.leaderCodeInput}">
+    </div>
+    ${state.leaderLoginError ? `<div class="error-banner">${state.leaderLoginError}</div>` : ""}
+    <button class="btn" id="leaderCodeSubmitBtn" ${state.leaderVerifying ? "disabled" : ""}>
+      ${state.leaderVerifying ? "Checking…" : "Enter"}
+    </button>
   `;
 }
 
@@ -688,7 +703,7 @@ function leaderDashView(){
 async function loadLeaderGroups(){
   state.groupsLoading = true; state.groupsError = "";
   render();
-  const { data, error } = await supabaseClient.rpc("leader_list_groups");
+  const { data, error } = await supabaseClient.rpc("leader_list_groups", { p_access_code: state.leaderAccessCode });
   state.groupsLoading = false;
   if(error){ state.groupsError = "Couldn't load groups just now. Try refreshing."; render(); return; }
   state.groups = data || [];
@@ -699,8 +714,8 @@ async function loadLeaderGroupAggregate(code){
   state.aggLoading = true; state.aggError = ""; state.aggCode = code;
   render();
   const call = code === "ALL"
-    ? supabaseClient.rpc("leader_get_all_groups_aggregate")
-    : supabaseClient.rpc("get_class_aggregate", { p_class_code: code });
+    ? supabaseClient.rpc("leader_get_all_groups_aggregate", { p_access_code: state.leaderAccessCode })
+    : supabaseClient.rpc("get_class_aggregate", { p_class_code: code, p_access_code: state.leaderAccessCode });
   const { data, error } = await call;
   state.aggLoading = false;
   if(error){ state.aggError = "Couldn't load results just now. Try refreshing."; state.aggData = []; render(); return; }
@@ -768,6 +783,7 @@ function leaderGroupView(){
     <div class="btn-row">
       <button class="btn ghost" id="refreshAggBtn">Refresh results</button>
       <button class="btn ghost" id="exportAggBtn">Download as .csv</button>
+      <button class="btn ghost" id="exportPdfBtn">Download as PDF</button>
     </div>
   `;
 }
@@ -872,11 +888,11 @@ function attachHandlers(){
     });
   }
 
-  // --- leader login ---
+  // --- leader access ---
   const leaderLoginLink = document.getElementById("leaderLoginLink");
   if(leaderLoginLink){
     leaderLoginLink.addEventListener("click", () => {
-      if(state.isLeaderAuthed){ state.view = "leaderDash"; loadLeaderGroups(); }
+      if(state.leaderVerified){ state.view = "leaderDash"; loadLeaderGroups(); }
       else { state.view = "leaderLogin"; render(); }
     });
   }
@@ -884,31 +900,36 @@ function attachHandlers(){
   const goDashBtn = document.getElementById("goDashBtn");
   if(goDashBtn) goDashBtn.addEventListener("click", () => { state.view = "leaderDash"; loadLeaderGroups(); });
 
-  const sendMagicLinkBtn = document.getElementById("sendMagicLinkBtn");
-  if(sendMagicLinkBtn){
-    sendMagicLinkBtn.addEventListener("click", async () => {
-      const emailInput = document.getElementById("leaderEmailInput");
-      const email = (emailInput.value || "").trim();
-      if(!email){ state.leaderLoginError = "Enter an email address."; render(); return; }
-      state.leaderLoginSending = true; state.leaderLoginError = ""; render();
-      const { error } = await supabaseClient.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: window.location.origin + window.location.pathname }
-      });
-      state.leaderLoginSending = false;
-      if(error){ state.leaderLoginError = "Something went wrong sending that link. Try again."; render(); return; }
-      state.leaderEmail = email;
-      state.leaderLoginSent = true;
-      render();
+  const leaderCodeSubmitBtn = document.getElementById("leaderCodeSubmitBtn");
+  if(leaderCodeSubmitBtn){
+    leaderCodeSubmitBtn.addEventListener("click", async () => {
+      const input = document.getElementById("leaderCodeInputEl");
+      const code = (input.value || "").trim();
+      state.leaderCodeInput = code;
+      if(!code){ state.leaderLoginError = "Enter the access code."; render(); return; }
+      state.leaderVerifying = true; state.leaderLoginError = ""; render();
+      const { data, error } = await supabaseClient.rpc("verify_leader_code", { p_access_code: code });
+      state.leaderVerifying = false;
+      if(error || data !== true){
+        state.leaderLoginError = "That code isn't correct. Try again.";
+        render();
+        return;
+      }
+      state.leaderAccessCode = code;
+      state.leaderVerified = true;
+      localStorage.setItem(LEADER_CODE_KEY, code);
+      state.view = "leaderDash";
+      await loadLeaderGroups();
     });
   }
 
   // --- leader dashboard ---
   const leaderLogoutBtn = document.getElementById("leaderLogoutBtn");
   if(leaderLogoutBtn){
-    leaderLogoutBtn.addEventListener("click", async () => {
-      await supabaseClient.auth.signOut();
-      state.isLeaderAuthed = false;
+    leaderLogoutBtn.addEventListener("click", () => {
+      localStorage.removeItem(LEADER_CODE_KEY);
+      state.leaderAccessCode = "";
+      state.leaderVerified = false;
       state.view = "home";
       render();
     });
@@ -934,7 +955,7 @@ function attachHandlers(){
       const label = (labelEl.value || "").trim();
       if(!code){ state.newGroupError = "Enter a code for the new group."; render(); return; }
       state.newGroupCreating = true; state.newGroupError = ""; render();
-      const { error } = await supabaseClient.rpc("leader_create_group", { p_code: code, p_label: label || null });
+      const { error } = await supabaseClient.rpc("leader_create_group", { p_code: code, p_label: label || null, p_access_code: state.leaderAccessCode });
       state.newGroupCreating = false;
       if(error){
         state.newGroupError = (error.message || "").includes("code_taken")
@@ -953,10 +974,13 @@ function attachHandlers(){
 
   const exportAggBtn = document.getElementById("exportAggBtn");
   if(exportAggBtn) exportAggBtn.addEventListener("click", () => exportCSV(state.aggCode, state.aggData || []));
+
+  const exportPdfBtn = document.getElementById("exportPdfBtn");
+  if(exportPdfBtn) exportPdfBtn.addEventListener("click", () => window.print());
 }
 
 render();
-checkLeaderSession();
+initLeaderAccess();
 </script>
 </body>
 </html>
