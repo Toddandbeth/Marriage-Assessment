@@ -161,11 +161,7 @@
   .footer-note a{ color: var(--ink-soft); }
   .btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
 
-  .resource-link{
-    display:inline-flex; align-items:center; gap:5px; font-family:'IBM Plex Mono', monospace;
-    font-size: 12.5px; letter-spacing: 0.04em; color: var(--sage-deep); font-weight: 600; text-decoration: none;
-  }
-  .resource-link:hover{ text-decoration: underline; }
+  .btn.btn-block{ display:flex; width:100%; justify-content:center; padding:18px 24px; font-size:16px; }
 
   .cat-row{ border-bottom: 1px solid var(--line); border-radius: 10px; }
   .cat-row:last-child{ border-bottom: none; }
@@ -183,9 +179,16 @@
   .cat-row .detail-panel{ padding: 0 16px 18px; }
 
   .guidance-block{ margin-top: 28px; }
-  .guidance-title{ font-weight: 700; font-size: 15px; margin: 0 0 6px; }
-  .guidance-body{ font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); margin: 0 0 22px; }
-  .guidance-body:last-child{ margin-bottom: 0; }
+  .guidance-block .btn-block{ text-align:left; justify-content:space-between; align-items:center; gap:12px; }
+  .guidance-chevron{ font-size: 15px; opacity: 0.75; flex-shrink:0; }
+  .guidance-content{ margin-top: 18px; }
+  .guidance-section{ margin-bottom: 20px; }
+  .guidance-section:last-of-type{ margin-bottom: 0; }
+  .guidance-step-title{ font-weight: 700; font-size: 15px; margin: 0 0 6px; }
+  .guidance-body{ font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); margin: 0; }
+  .guidance-list{ margin: 0; padding-left: 20px; font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); }
+  .guidance-list li{ margin-bottom: 4px; }
+  .guidance-list li:last-child{ margin-bottom: 0; }
 
   @media print{
     .backlink, #printBtn, .btn, .choice-row, .banner{ display:none !important; }
@@ -211,20 +214,23 @@
       margin: 0 0 8pt; border-top: 1pt solid #2b2a24; padding-top: 10pt;
     }
     .print-summary-heading{ border-top: none; padding-top: 0; }
+    .print-detail-heading{ page-break-before: always; break-before: page; }
 
-    .print-summary-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 7pt 18pt; margin-bottom: 14pt; }
-    .print-cat{ break-inside: avoid; page-break-inside: avoid; border-bottom: 0.5pt solid #ccc; padding-bottom: 6pt; }
+    .print-summary-grid{ display:block; margin-bottom: 14pt; }
+    .print-cat{ break-inside: avoid; page-break-inside: avoid; border-bottom: 0.5pt solid #ccc; padding: 5pt 0 7pt; }
     .print-cat-top{ display:flex; justify-content: space-between; align-items: baseline; font-size: 10pt; margin-bottom: 4pt; gap: 6pt; }
     .print-cat-name{ font-weight: 600; }
     .print-cat-band{ font-size: 10pt; font-weight: 700; white-space: nowrap; }
-    .print-cat-bottom{ display:flex; align-items:center; gap: 8pt; }
-    .print-bar-track{ flex:1; height: 6pt; background: #e5e2d6; border-radius: 3pt; overflow: hidden; }
+    .print-cat-bottom{ display:flex; align-items:center; gap: 10pt; }
+    .print-bar-track{ flex:1; height: 7pt; background: #e5e2d6; border-radius: 3pt; overflow: hidden; }
     .print-bar-fill{ height: 100%; }
     .print-cat-score{ font-size: 10pt; font-weight: 600; width: 36pt; text-align: right; flex-shrink: 0; }
 
     .print-highlight{ font-size: 10pt; line-height: 1.4; margin: 0 0 4pt; }
 
-    .print-detail-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; }
+    .print-detail-page{ display:grid; grid-template-columns: 1fr 1fr; gap: 0 18pt; }
+    .print-detail-page-break{ page-break-before: always; break-before: page; }
+    .print-detail-col{ min-width: 0; }
     .print-detail-cat{ break-inside: avoid; page-break-inside: avoid; margin-bottom: 11pt; }
     .print-detail-cat-name{ font-weight: 700; font-size: 10pt; margin-bottom: 4pt; border-bottom: 0.5pt solid #999; padding-bottom: 3pt; }
     .print-stmt{ display:flex; justify-content: space-between; align-items: baseline; gap: 8pt; padding: 3pt 0; font-size: 10pt; line-height: 1.3; }
@@ -233,10 +239,15 @@
     .print-dot{ width: 6pt; height: 6pt; border-radius: 50%; background: #ddd; display:inline-block; }
     .print-dot.filled{ background: var(--sage-deep); }
 
-    .print-guidance{ margin-top: 4pt; border-top: 1pt solid #2b2a24; padding-top: 10pt; }
+    .print-guidance{ margin-top: 14pt; border-top: 1pt solid #2b2a24; padding-top: 10pt; }
+    .print-guidance-heading{
+      font-family:'Fraunces', Georgia, serif; font-weight: 700; font-size: 13pt; margin: 0 0 10pt;
+    }
+    .print-guidance-section{ break-inside: avoid; page-break-inside: avoid; margin-bottom: 10pt; }
     .print-guidance-title{ font-weight: 700; font-size: 11pt; margin: 0 0 4pt; }
-    .print-guidance-body{ font-size: 10pt; line-height: 1.45; margin: 0 0 11pt; }
-    .print-guidance-body:last-child{ margin-bottom: 0; }
+    .print-guidance-body{ font-size: 10pt; line-height: 1.45; margin: 0; }
+    .print-guidance-list{ margin: 0; padding-left: 14pt; font-size: 10pt; line-height: 1.45; }
+    .print-guidance-list li{ margin-bottom: 2pt; }
 
     .print-footer{ margin-top: 14pt; font-size: 10pt; color: #555; text-align:center; }
   }
@@ -349,6 +360,41 @@ function bandFor(score){
   return { key:"focus", label: "Needs focus", color: "#9B4A38" };
 }
 
+const GUIDANCE_TITLE = "Evaluating Your Marriage Assessment Results";
+const GUIDANCE_SECTIONS = [
+  { body: "Now that you and your spouse have completed the assessment, it's time to evaluate your results and use them as a tool for strengthening your marriage. The goal is not to judge or criticize, but to gain insight into your relationship, celebrating strengths and identifying opportunities for growth." },
+  { title: "Step 1: Compare Scores by Category", body: "Rather than focusing on your total score, compare your responses in each category. Look for significant differences in how you and your spouse view an area of your marriage, as well as categories where you both scored low. A difference of 10 or more points may reveal a perception gap worth discussing, while categories where you both scored below 15 may need additional attention. Also pay attention to individual questions where either of you scored a 1 or 2, even if the overall category score is strong, as these may reveal a specific area that needs to be addressed." },
+  { title: "Step 2: Understanding Your Scores", list: [
+    "25 – This area is strong. If your spouse's score is lower, talk about why.",
+    "20–24 – Very good. Review any questions marked low and discuss them.",
+    "15–19 – Room for improvement. Consider simple actions to strengthen this area.",
+    "Below 15 – This area needs focused attention and intentional effort."
+  ]},
+  { title: "Step 3: Discuss with Grace and Patience", body: "Approach your conversation with love, patience, and a desire to grow. Stay curious, not defensive. Use \"I\" statements to describe your experience. Celebrate strengths as well as identifying weaknesses. Be open to change for the sake of a stronger relationship." },
+  { title: "Step 4: Identify Areas to Work On", body: "Choose one or two areas to focus on for the next few months.", list: [
+    "What area do we both agree needs improvement?",
+    "What is one small change we can make this week?",
+    "How can we lovingly support each other in making progress?"
+  ]},
+  { title: "Step 5: Next Steps for Strengthening Your Marriage", body: "Consider ways to actively invest in your relationship.", list: [
+    "Read Intentional Marriage together or in a group.",
+    "Complete the 30-Day Intentional Marriage Challenge.",
+    "Attend a local or national marriage conference.",
+    "Join a marriage life group or small group through your church."
+  ]},
+  { title: "Final Thought: Marriage is a Journey, Not a Destination", body: "This assessment isn't about perfection, it's about intentionality. Every couple has areas to improve. Taking this step shows your commitment to one another. You are on the same team. Small changes lead to lasting transformation. A strong marriage is built over time with love, effort, and grace." }
+];
+
+function renderGuidanceSections(classes){
+  return GUIDANCE_SECTIONS.map(sec => `
+    <div class="${classes.section}">
+      ${sec.title ? `<p class="${classes.title}">${sec.title}</p>` : ""}
+      ${sec.body ? `<p class="${classes.body}">${sec.body}</p>` : ""}
+      ${sec.list ? `<ul class="${classes.list}">${sec.list.map(li => `<li>${li}</li>`).join("")}</ul>` : ""}
+    </div>
+  `).join("");
+}
+
 function formatPrintDate(iso){
   try{
     return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
@@ -376,6 +422,7 @@ const state = {
   viewingSubmission: null,   // { classCode, createdAt, answers, scores, retrievalCode, justSubmitted, email }
   expandedCategory: null,
   expandAll: false,
+  guidanceOpen: false,
   lookupCode: "",
   lookupError: "",
   submitError: "",
@@ -440,8 +487,8 @@ function homeView(){
       </button>
     </div>
     <p class="footer-note">Individual answers are never shown to a class leader. Only anonymous category totals are added to the group view.</p>
-    <p class="footer-note"><a class="resource-link" href="${IM_LINK}" target="_blank" rel="noopener">Intentional Marriage Resources &#8599;</a></p>
-    <p class="footer-note" style="margin-top:10px;"><button class="tiny-link" id="leaderLoginLink">Leader Login</button></p>
+    <a class="btn btn-block" style="text-decoration:none; margin-top:18px;" href="${IM_LINK}" target="_blank" rel="noopener">Intentional Marriage Resources</a>
+    <p class="footer-note" style="margin-top:14px;"><button class="tiny-link" id="leaderLoginLink">Leader Login</button></p>
   `;
 }
 
@@ -550,6 +597,7 @@ async function finishAssessment(){
     justSubmitted: true
   };
   state.expandedCategory = null;
+  state.guidanceOpen = false;
   state.view = "results";
   render();
   window.scrollTo({top:0, behavior:"instant"});
@@ -589,6 +637,7 @@ async function runLookup(code){
     justSubmitted: false
   };
   state.expandedCategory = null;
+  state.guidanceOpen = false;
   state.view = "results";
   render();
   window.scrollTo({top:0, behavior:"instant"});
@@ -635,10 +684,6 @@ function resultsView(){
   const mailBody = encodeURIComponent(`Here is my private results code for the Intentional Marriage Assessment: ${sub.retrievalCode}\n\nKeep this to look up your results again any time.`);
   const partOfRealClass = sub.classCode && sub.classCode !== "GENERAL";
 
-  const howToUseTitle = "How to Use This Information";
-  const howToUseBody = "When you sit down together, look at each category rather than just the total. Notice where your scores differ, especially anywhere ten points or more apart, that usually means you're seeing the same part of your marriage very differently. Stay curious, not defensive. Celebrate what's already strong before turning to what needs work.";
-  const nextStepsTitle = "Next Steps";
-  const nextStepsBody = "Pick one or two areas to work on over the next few months, not all twelve at once. What's one small change you could both make this week? A strong marriage is built over time, not fixed in one conversation. Consider working through Intentional Marriage together, completing the 30-Day Intentional Marriage Challenge, or joining a group through your church.";
   const footerNote = "For a deeper walkthrough of these results together, see Intentional Marriage or the 30-Day Intentional Marriage Challenge at IntentionalMinistries.com.";
 
   const printSummaryRows = CATEGORIES.map(cat => {
@@ -659,16 +704,27 @@ function resultsView(){
     `;
   }).join("");
 
-  const printDetailCats = CATEGORIES.map(cat => `
-    <div class="print-detail-cat">
-      <div class="print-detail-cat-name">${cat.name}</div>
-      ${cat.statements.map((s,i) => {
-        const v = (answers[cat.name] && answers[cat.name][i]) || 0;
-        const dots = [1,2,3,4,5].map(d => `<span class="print-dot ${d<=v?'filled':''}"></span>`).join("");
-        return `<div class="print-stmt"><span class="print-stmt-text">${s}</span><span class="print-stmt-dots">${dots}</span></div>`;
-      }).join("")}
+  function printDetailCatHtml(cat){
+    return `
+      <div class="print-detail-cat">
+        <div class="print-detail-cat-name">${cat.name}</div>
+        ${cat.statements.map((s,i) => {
+          const v = (answers[cat.name] && answers[cat.name][i]) || 0;
+          const dots = [1,2,3,4,5].map(d => `<span class="print-dot ${d<=v?'filled':''}"></span>`).join("");
+          return `<div class="print-stmt"><span class="print-stmt-text">${s}</span><span class="print-stmt-dots">${dots}</span></div>`;
+        }).join("")}
+      </div>
+    `;
+  }
+  const printDetailPages = [CATEGORIES.slice(0,6), CATEGORIES.slice(6,12)].map((group, idx) => `
+    <div class="print-detail-page ${idx === 1 ? 'print-detail-page-break' : ''}">
+      <div class="print-detail-col">${group.slice(0,3).map(printDetailCatHtml).join("")}</div>
+      <div class="print-detail-col">${group.slice(3,6).map(printDetailCatHtml).join("")}</div>
     </div>
   `).join("");
+
+  const guidanceScreenHtml = renderGuidanceSections({ section:"guidance-section", title:"guidance-step-title", body:"guidance-body", list:"guidance-list" });
+  const guidancePrintHtml = renderGuidanceSections({ section:"print-guidance-section", title:"print-guidance-title", body:"print-guidance-body", list:"print-guidance-list" });
 
   return `
     <div class="screen-only">
@@ -704,10 +760,16 @@ function resultsView(){
         <button class="btn ghost" data-go="home">Done</button>
       </div>
       <div class="guidance-block">
-        <p class="guidance-title">${howToUseTitle}</p>
-        <p class="guidance-body">${howToUseBody}</p>
-        <p class="guidance-title">${nextStepsTitle}</p>
-        <p class="guidance-body">${nextStepsBody}</p>
+        <button class="btn btn-block" id="guidanceToggleBtn">
+          <span>${GUIDANCE_TITLE}</span>
+          <span class="guidance-chevron">${state.guidanceOpen ? "▾" : "▸"}</span>
+        </button>
+        ${state.guidanceOpen ? `
+          <div class="guidance-content">
+            ${guidanceScreenHtml}
+            <a class="btn btn-block" style="text-decoration:none; margin-top:4px;" href="${IM_LINK}" target="_blank" rel="noopener">Intentional Marriage Resources</a>
+          </div>
+        ` : ""}
       </div>
       <p class="footer-note">${footerNote}</p>
     </div>
@@ -727,13 +789,11 @@ function resultsView(){
       <p class="print-highlight">The strongest area right now is <strong>${highest[0]}</strong>. The area that could use the most attention is <strong>${lowest[0]}</strong>.</p>
 
       <div class="print-detail-heading">Detailed Answers</div>
-      <div class="print-detail-grid">${printDetailCats}</div>
+      ${printDetailPages}
 
       <div class="print-guidance">
-        <p class="print-guidance-title">${howToUseTitle}</p>
-        <p class="print-guidance-body">${howToUseBody}</p>
-        <p class="print-guidance-title">${nextStepsTitle}</p>
-        <p class="print-guidance-body">${nextStepsBody}</p>
+        <p class="print-guidance-heading">${GUIDANCE_TITLE}</p>
+        ${guidancePrintHtml}
       </div>
 
       <div class="print-footer">${footerNote}</div>
@@ -1006,6 +1066,14 @@ function attachHandlers(){
       render();
     });
   });
+
+  const guidanceToggleBtn = document.getElementById("guidanceToggleBtn");
+  if(guidanceToggleBtn){
+    guidanceToggleBtn.addEventListener("click", () => {
+      state.guidanceOpen = !state.guidanceOpen;
+      render();
+    });
+  }
 
   const printBtn = document.getElementById("printBtn");
   if(printBtn) printBtn.addEventListener("click", () => window.print());
