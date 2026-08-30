@@ -49,6 +49,18 @@ $$;
 
 grant execute on function public.get_submission_by_code(text) to anon;
 
+-- Normalizes a class/group code for matching and storage: case-insensitive,
+-- leading/trailing whitespace trimmed, and internal runs of whitespace
+-- collapsed to a single space (so "Full Count 2026" == "full  count 2026"
+-- but a space still distinguishes "Full Count 2026" from "FullCount2026").
+create or replace function public.normalize_code(p_code text)
+returns text
+language sql
+immutable
+as $$
+  select upper(trim(regexp_replace(coalesce(p_code, ''), '\s+', ' ', 'g')));
+$$;
+
 -- Door #2: a class leader viewing anonymous group results.
 -- Returns only category scores and a timestamp for a given class code.
 -- Never returns retrieval_code, email, or per-question answers, so an
@@ -72,7 +84,7 @@ begin
   return query
     select s.scores, s.created_at
     from public.submissions s
-    where s.class_code = upper(trim(p_class_code));
+    where s.class_code = public.normalize_code(p_class_code);
 end;
 $$;
 
@@ -106,7 +118,7 @@ language sql
 security definer
 set search_path = public
 as $$
-  select exists(select 1 from public.groups where code = upper(trim(p_code)));
+  select exists(select 1 from public.groups where code = public.normalize_code(p_code));
 $$;
 
 grant execute on function public.check_group_exists(text) to anon;
@@ -169,7 +181,7 @@ begin
     from public.groups g
     left join public.submissions s on s.class_code = g.code
     group by g.code, g.label, g.exclude_from_summary, g.created_at
-    order by g.created_at asc;
+    order by g.created_at desc;
 end;
 $$;
 
@@ -184,7 +196,7 @@ security definer
 set search_path = public
 as $$
 declare
-  v_code text := upper(trim(p_code));
+  v_code text := public.normalize_code(p_code);
 begin
   if not public.verify_leader_code(p_access_code) then
     raise exception 'not authorized' using errcode = '42501';
