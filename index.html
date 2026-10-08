@@ -80,12 +80,6 @@
   }
   .backlink:hover{ color: var(--ink); }
 
-  .tiny-link{
-    background:none; border:none; cursor:pointer; font-family:'IBM Plex Mono', monospace;
-    font-size: 11px; letter-spacing: 0.04em; color: var(--ink-soft); opacity: 0.5; padding: 4px;
-  }
-  .tiny-link:hover{ opacity: 0.9; }
-
   label.field-label{
     display:block; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; font-weight: 600;
@@ -277,43 +271,24 @@
   body.flow-mode .im-logo-static{ display:block; }
   body.flow-mode .im-nav, body.flow-mode .im-menu-btn, body.flow-mode #im-menu{ display:none !important; }
 
-  /* footer */
-  #site-footer{ background:var(--im-navy); color:#fff; font-family:'Barlow',sans-serif; font-size:18px; line-height:1.625; flex-shrink:0; }
-  @media (min-width:640px){ #site-footer{ font-size:19px; } }
-  .im-stripe{ display:flex; height:8px; }
-  .im-stripe i{ flex:1; display:block; }
-  .im-footer-inner{ max-width:72rem; margin:0 auto; padding:56px 16px; }
-  .im-footer-top{ display:flex; flex-direction:column; gap:48px; }
-  .im-footer-brand{ max-width:20rem; }
-  .im-footer-brand img{ display:block; height:48px; width:auto; margin-left:-6px; }
-  .im-tagline{ margin:20px 0 0; font-size:1rem; line-height:1.625; color:var(--im-gray); }
-  .im-footer-cols{ display:grid; grid-template-columns:1fr 1fr; gap:40px 32px; }
-  .im-eyebrow{
-    margin:0; font-family:'Barlow Condensed',sans-serif; font-weight:500; text-transform:uppercase;
-    letter-spacing:0.18em; font-size:0.875rem; line-height:1.625; color:var(--im-blue);
+  /* slim bottom strip: copyright only (plus the quiet Leader Login link on the front door) */
+  #site-strip{ background:var(--im-navy); color:rgba(204,208,214,0.85); font-family:'Barlow',sans-serif; flex-shrink:0; }
+  .im-strip-inner{
+    max-width:72rem; margin:0 auto; padding:14px 16px; display:flex; flex-wrap:wrap;
+    align-items:center; justify-content:space-between; gap:2px 24px;
+    font-size:0.875rem; line-height:1.25rem;
   }
-  .im-footer-cols ul{ list-style:none; margin:16px 0 0; padding:0; }
-  .im-footer-cols li + li{ margin-top:12px; }
-  .im-footer-cols a, .im-footer-brand a{ font-size:1rem; color:rgba(255,255,255,0.9); text-decoration:none; transition:color .15s; }
-  .im-footer-cols a:hover{ color:#fff; }
-  .im-footer-cols a:focus-visible, .im-footer-brand a:focus-visible{ outline:3px solid var(--im-blue); outline-offset:3px; }
-  .im-copy{ margin-top:56px; border-top:1px solid rgba(255,255,255,0.15); padding-top:24px; font-size:0.875rem; line-height:1.25rem; color:rgba(204,208,214,0.8); }
-  .im-footer-brand .im-footer-logo-static{ display:none; }
-  body.flow-mode .im-footer-cols{ display:none; }
-  body.flow-mode .im-footer-brand .im-footer-logo-link{ display:none; }
-  body.flow-mode .im-footer-brand .im-footer-logo-static{ display:block; }
-  body.flow-mode .im-footer-inner{ padding-top:32px; padding-bottom:32px; }
-  body.flow-mode .im-copy{ margin-top:24px; }
-  @media (min-width:640px){
-    .im-footer-inner{ padding-left:24px; padding-right:24px; }
-    .im-footer-cols{ grid-template-columns:repeat(3,1fr); }
+  .im-strip-copy{ margin:0; }
+  .im-strip-slot:empty{ display:none; }
+  .im-strip-link{
+    background:none; border:0; padding:6px 0; cursor:pointer; font-family:'Barlow',sans-serif;
+    font-size:0.875rem; line-height:1.25rem; color:rgba(204,208,214,0.85);
+    text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:3px;
   }
-  @media (min-width:1024px){
-    .im-footer-inner{ padding:64px 32px; }
-    body.flow-mode .im-footer-inner{ padding-top:32px; padding-bottom:32px; }
-    .im-footer-top{ flex-direction:row; justify-content:space-between; }
-    .im-footer-cols{ column-gap:64px; }
-  }
+  .im-strip-link:hover{ color:#fff; }
+  .im-strip-link:focus-visible{ outline:3px solid var(--im-blue); outline-offset:3px; }
+  @media (min-width:640px){ .im-strip-inner{ padding-left:24px; padding-right:24px; } }
+  @media (min-width:1024px){ .im-strip-inner{ padding-left:32px; padding-right:32px; } }
 
   /* front door (Marriage-section look) */
   .fd-wrap{ max-width:72rem; margin:0 auto; padding:0 16px; }
@@ -376,7 +351,7 @@
   @media print{
     @page{ size: letter; margin: 0.5in; }
     #app{ max-width: none; padding: 0; }
-    #site-header, #im-menu, #site-footer{ display:none !important; }
+    #site-header, #im-menu, #site-strip{ display:none !important; }
     .screen-only{ display:none !important; }
     .print-sheet{ display:block !important; font-family: 'Inter', Arial, sans-serif; color:#141310; }
 
@@ -483,45 +458,12 @@
 
 <div id="app"></div>
 
-<footer id="site-footer">
-  <div class="im-stripe" aria-hidden="true"><i style="background:var(--im-blue)"></i><i style="background:var(--im-green)"></i></div>
-  <div class="im-footer-inner">
-    <div class="im-footer-top">
-      <div class="im-footer-brand">
-        <a class="im-footer-logo-link" href="https://www.intentionalministries.com/" target="_blank" rel="noopener" aria-label="Intentional Ministries home (opens in a new tab)">
-          <img src="assets/logos/horizontal-white.png" alt="Intentional Ministries" width="1567" height="503">
-        </a>
-        <img class="im-footer-logo-static" src="assets/logos/horizontal-white.png" alt="Intentional Ministries" width="1567" height="503">
-        <p class="im-tagline">Equipping people to live intentionally in faith, relationships, and life.</p>
-      </div>
-      <div class="im-footer-cols">
-        <div>
-          <h2 class="im-eyebrow">Discipleship</h2>
-          <ul>
-            <li><a href="https://www.intentionalministries.com/discipleship" target="_blank" rel="noopener">Discipleship<span class="im-sr"> (opens in a new tab)</span></a></li>
-            <li><a href="https://www.intentionalministries.com/discipleship/intentional-discipleship" target="_blank" rel="noopener">Intentional Discipleship<span class="im-sr"> (opens in a new tab)</span></a></li>
-          </ul>
-        </div>
-        <div>
-          <h2 class="im-eyebrow">Marriage</h2>
-          <ul>
-            <li><a href="https://www.intentionalministries.com/marriage" target="_blank" rel="noopener">Marriage<span class="im-sr"> (opens in a new tab)</span></a></li>
-            <li><a href="https://www.intentionalministries.com/marriage/intentional-marriage" target="_blank" rel="noopener">Intentional Marriage<span class="im-sr"> (opens in a new tab)</span></a></li>
-          </ul>
-        </div>
-        <div>
-          <h2 class="im-eyebrow">More</h2>
-          <ul>
-            <li><a href="https://www.intentionalministries.com/resources" target="_blank" rel="noopener">Resources<span class="im-sr"> (opens in a new tab)</span></a></li>
-            <li><a href="https://www.intentionalministries.com/about" target="_blank" rel="noopener">About<span class="im-sr"> (opens in a new tab)</span></a></li>
-            <li><a href="https://www.intentionalministries.com/contact" target="_blank" rel="noopener">Contact<span class="im-sr"> (opens in a new tab)</span></a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <div class="im-copy">© 2026 Intentional Ministries. All rights reserved.</div>
+<div id="site-strip">
+  <div class="im-strip-inner">
+    <p class="im-strip-copy">© 2026 Intentional Ministries. All rights reserved.</p>
+    <span class="im-strip-slot" id="stripSlot"></span>
   </div>
-</footer>
+</div>
 
 <script>
 /* ---------- CONFIGURE THESE TWO VALUES FOR YOUR SUPABASE PROJECT ---------- */
@@ -736,6 +678,8 @@ function render(){
   const app = document.getElementById("app");
   app.className = state.view === "home" ? "app-wide" : "";
   document.body.classList.toggle("flow-mode", state.view === "startChoice" || state.view === "assessment");
+  document.getElementById("stripSlot").innerHTML = state.view === "home"
+    ? `<button class="im-strip-link" id="leaderLoginLink">Leader Login</button>` : "";
   if(state.view === "home") app.innerHTML = homeView();
   else if(state.view === "startChoice") app.innerHTML = startChoiceView();
   else if(state.view === "assessment") app.innerHTML = assessmentView();
@@ -779,7 +723,6 @@ function homeView(){
       <div class="fd-wrap">
         <div class="fd-resources">
           <a class="btn btn-block" style="text-decoration:none; margin-top:18px;" href="${IM_LINK}" target="_blank" rel="noopener">Intentional Marriage Resources</a>
-          <p class="footer-note" style="margin-top:14px;"><button class="tiny-link" id="leaderLoginLink">Leader Login</button></p>
         </div>
       </div>
     </section>
