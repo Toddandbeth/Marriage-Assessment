@@ -6,7 +6,7 @@
 <title>Intentional Marriage Assessment</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap');
 
   :root{
     --paper: #F4F0E6;
@@ -201,11 +201,182 @@
     .card{ box-shadow:none; border:1px solid #ccc; }
   }
 
+  /* ==========================================================================
+     Intentional Ministries site look: shared header + footer, and the
+     Marriage-style front door. Copied from STYLE-GUIDE.md (Barlow / Barlow
+     Condensed, navy/green/tan, square corners). Everything here is prefixed
+     im- / fd- so no other screen's styling is affected.
+     ========================================================================== */
+  :root{
+    --im-navy:#253551; --im-gray:#ccd0d6; --im-blue:#7993c2; --im-green:#7f8b69; --im-tan:#ba9c81;
+    --im-ink:#1a2233; --im-warm:#f3f1ea; --im-warm2:#f6f5f0;
+  }
+  @media screen{
+    body{ display:flex; flex-direction:column; }
+    #app{ flex:1 0 auto; width:100%; }
+  }
+  #app.app-wide{ max-width:none; padding:0; background:var(--im-warm); }
+  .im-sr{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+  /* header */
+  #site-header{ position:sticky; top:0; z-index:40; background:#fff; font-family:'Barlow',sans-serif; }
+  .im-cover-band{ height:10px; background:linear-gradient(to bottom, var(--im-navy) 0 60%, var(--im-gray) 60% 100%); }
+  .im-header-row{ max-width:72rem; margin:0 auto; height:64px; padding:0 16px; display:flex; align-items:center; justify-content:space-between; }
+  .im-logo{ display:block; flex-shrink:0; line-height:0; }
+  .im-logo img{ display:block; height:44px; width:auto; margin-left:-6px; }
+  .im-logo a:focus-visible, a.im-logo:focus-visible{ outline:3px solid var(--im-blue); outline-offset:3px; }
+  .im-nav{ display:none; }
+  .im-nav ul{ display:flex; align-items:center; gap:36px; list-style:none; margin:0; padding:0; }
+  .im-nav a{
+    position:relative; font-family:'Barlow Condensed',sans-serif; font-weight:500; font-size:1.1rem;
+    text-transform:uppercase; letter-spacing:0.12em; color:var(--im-navy); text-decoration:none; transition:color .15s;
+  }
+  .im-nav a:hover{ color:var(--im-ink); }
+  .im-nav a:focus-visible{ outline:3px solid var(--im-blue); outline-offset:6px; }
+  .im-nav a::after{
+    content:""; position:absolute; left:0; bottom:-6px; height:3px; width:100%; background:var(--im-navy);
+    transform:scaleX(0); transform-origin:left; transition:transform .2s;
+  }
+  .im-nav a.u-blue::after{ background:var(--im-blue); }
+  .im-nav a.u-green::after{ background:var(--im-green); }
+  .im-nav a:hover::after, .im-nav a[aria-current="page"]::after{ transform:scaleX(1); }
+  .im-menu-btn{
+    margin-right:-8px; width:44px; height:44px; display:flex; align-items:center; justify-content:center;
+    background:none; border:0; padding:0; color:var(--im-navy); cursor:pointer;
+  }
+  .im-menu-btn:focus-visible{ outline:3px solid var(--im-blue); outline-offset:2px; }
+  .im-burger{ position:relative; display:block; width:24px; height:16px; }
+  .im-burger span{ position:absolute; left:0; width:24px; height:2.5px; background:currentColor; transition:all .2s; }
+  .im-burger span:nth-child(1){ top:0; }
+  .im-burger span:nth-child(2){ top:50%; transform:translateY(-50%); }
+  .im-burger span:nth-child(3){ bottom:0; }
+  .im-menu-btn.open .im-burger span:nth-child(1){ top:50%; transform:translateY(-50%) rotate(45deg); }
+  .im-menu-btn.open .im-burger span:nth-child(2){ opacity:0; }
+  .im-menu-btn.open .im-burger span:nth-child(3){ bottom:auto; top:50%; transform:translateY(-50%) rotate(-45deg); }
+  .im-header-rule{ height:1px; background:rgba(204,208,214,0.7); }
+  #im-menu{ position:fixed; left:0; right:0; bottom:0; top:75px; z-index:50; background:#fff; overflow-y:auto; }
+  #im-menu[hidden]{ display:none; }
+  #im-menu ul{ list-style:none; margin:0; padding:0 16px; border-top:1px solid rgba(204,208,214,0.6); }
+  #im-menu li + li{ border-top:1px solid rgba(204,208,214,0.6); }
+  #im-menu a{ display:flex; align-items:center; gap:16px; padding:20px 0; text-decoration:none; }
+  #im-menu .bar{ width:6px; height:32px; flex-shrink:0; }
+  #im-menu .label{
+    font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:2rem; line-height:.95;
+    letter-spacing:0.02em; text-transform:uppercase; color:var(--im-navy);
+  }
+  @media (min-width:640px){ .im-header-row{ padding:0 24px; } #im-menu ul{ padding:0 24px; } }
+  @media (min-width:1024px){
+    .im-header-row{ height:80px; padding:0 32px; }
+    .im-logo img{ height:3.4rem; }
+    .im-nav{ display:block; }
+    .im-menu-btn{ display:none; }
+    #im-menu{ display:none !important; }
+  }
+  .im-logo-static{ display:none; }
+  body.flow-mode .im-logo-link{ display:none; }
+  body.flow-mode .im-logo-static{ display:block; }
+  body.flow-mode .im-nav, body.flow-mode .im-menu-btn, body.flow-mode #im-menu{ display:none !important; }
+
+  /* footer */
+  #site-footer{ background:var(--im-navy); color:#fff; font-family:'Barlow',sans-serif; font-size:18px; line-height:1.625; flex-shrink:0; }
+  @media (min-width:640px){ #site-footer{ font-size:19px; } }
+  .im-stripe{ display:flex; height:8px; }
+  .im-stripe i{ flex:1; display:block; }
+  .im-footer-inner{ max-width:72rem; margin:0 auto; padding:56px 16px; }
+  .im-footer-top{ display:flex; flex-direction:column; gap:48px; }
+  .im-footer-brand{ max-width:20rem; }
+  .im-footer-brand img{ display:block; height:48px; width:auto; margin-left:-6px; }
+  .im-tagline{ margin:20px 0 0; font-size:1rem; line-height:1.625; color:var(--im-gray); }
+  .im-footer-cols{ display:grid; grid-template-columns:1fr 1fr; gap:40px 32px; }
+  .im-eyebrow{
+    margin:0; font-family:'Barlow Condensed',sans-serif; font-weight:500; text-transform:uppercase;
+    letter-spacing:0.18em; font-size:0.875rem; line-height:1.625; color:var(--im-blue);
+  }
+  .im-footer-cols ul{ list-style:none; margin:16px 0 0; padding:0; }
+  .im-footer-cols li + li{ margin-top:12px; }
+  .im-footer-cols a, .im-footer-brand a{ font-size:1rem; color:rgba(255,255,255,0.9); text-decoration:none; transition:color .15s; }
+  .im-footer-cols a:hover{ color:#fff; }
+  .im-footer-cols a:focus-visible, .im-footer-brand a:focus-visible{ outline:3px solid var(--im-blue); outline-offset:3px; }
+  .im-copy{ margin-top:56px; border-top:1px solid rgba(255,255,255,0.15); padding-top:24px; font-size:0.875rem; line-height:1.25rem; color:rgba(204,208,214,0.8); }
+  .im-footer-brand .im-footer-logo-static{ display:none; }
+  body.flow-mode .im-footer-cols{ display:none; }
+  body.flow-mode .im-footer-brand .im-footer-logo-link{ display:none; }
+  body.flow-mode .im-footer-brand .im-footer-logo-static{ display:block; }
+  body.flow-mode .im-footer-inner{ padding-top:32px; padding-bottom:32px; }
+  body.flow-mode .im-copy{ margin-top:24px; }
+  @media (min-width:640px){
+    .im-footer-inner{ padding-left:24px; padding-right:24px; }
+    .im-footer-cols{ grid-template-columns:repeat(3,1fr); }
+  }
+  @media (min-width:1024px){
+    .im-footer-inner{ padding:64px 32px; }
+    body.flow-mode .im-footer-inner{ padding-top:32px; padding-bottom:32px; }
+    .im-footer-top{ flex-direction:row; justify-content:space-between; }
+    .im-footer-cols{ column-gap:64px; }
+  }
+
+  /* front door (Marriage-section look) */
+  .fd-wrap{ max-width:72rem; margin:0 auto; padding:0 16px; }
+  @media (min-width:640px){ .fd-wrap{ padding:0 24px; } }
+  @media (min-width:1024px){ .fd-wrap{ padding:0 32px; } }
+  .fd-hero{ position:relative; isolation:isolate; overflow:hidden; color:#fff; background:#4f5a3d; }
+  .fd-hero-bg{ position:absolute; inset:0; z-index:-2; width:100%; height:100%; object-fit:cover; }
+  .fd-hero-icon{
+    position:absolute; right:4%; top:50%; z-index:-1; display:none; height:70%; width:auto;
+    transform:translateY(-50%); mix-blend-mode:soft-light; opacity:.5; pointer-events:none;
+  }
+  .fd-hero .fd-wrap{ padding-top:48px; padding-bottom:48px; }
+  .fd-h1{
+    margin:0; font-family:'Barlow Condensed',sans-serif; font-weight:600; text-transform:uppercase;
+    letter-spacing:0.02em; line-height:.95; font-size:2.9rem; text-shadow:0 2px 18px rgba(0,0,0,0.3); text-wrap:balance;
+  }
+  .fd-h1 .fd-hl{ display:block; color:var(--im-tan); font-size:3.6rem; }
+  .fd-h1 .fd-line{ display:block; }
+  @media (min-width:640px){
+    .fd-hero .fd-wrap{ padding-top:64px; padding-bottom:64px; }
+    .fd-h1{ font-size:4.5rem; } .fd-h1 .fd-hl{ font-size:5.5rem; }
+  }
+  @media (min-width:1024px){
+    .fd-hero .fd-wrap{ padding-top:112px; padding-bottom:112px; }
+    .fd-h1{ font-size:6.5rem; } .fd-h1 .fd-hl{ font-size:8.5rem; }
+    .fd-hero-icon{ display:block; right:7%; height:72%; }
+  }
+  .fd-light{ background:#fff; color:var(--im-ink); font-family:'Barlow',sans-serif; }
+  .fd-light .fd-wrap{ padding-top:56px; padding-bottom:56px; }
+  @media (min-width:1024px){ .fd-light .fd-wrap{ padding-top:80px; padding-bottom:80px; } }
+  .fd-lead{ margin:0; max-width:48rem; font-size:1.25rem; line-height:1.625; text-wrap:pretty; }
+  @media (min-width:640px){ .fd-lead{ font-size:1.5rem; } }
+  .fd-actions{ display:grid; gap:32px; margin-top:40px; }
+  @media (min-width:768px){ .fd-actions{ grid-template-columns:1fr 1fr; gap:32px 40px; } }
+  .fd-btn{
+    display:flex; width:100%; min-height:56px; align-items:center; justify-content:center; gap:10px;
+    padding:12px 24px; border:2px solid transparent; border-radius:0; cursor:pointer;
+    font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:1.2rem; text-transform:uppercase;
+    letter-spacing:0.1em; white-space:nowrap; transition:background-color .15s, color .15s, border-color .15s;
+  }
+  .fd-btn svg{ width:14px; height:14px; flex-shrink:0; }
+  .fd-btn-green{ background:var(--im-green); border-color:var(--im-green); color:#fff; }
+  .fd-btn-green:hover{ background:#6c7759; border-color:#6c7759; }
+  .fd-btn-outline{ background:transparent; border-color:var(--im-navy); color:var(--im-navy); }
+  .fd-btn-outline:hover{ background:var(--im-navy); color:#fff; }
+  .fd-btn:focus-visible{ outline:3px solid var(--im-blue); outline-offset:3px; }
+  @media (max-width:359px){ .fd-btn{ white-space:normal; padding-left:14px; padding-right:14px; } }
+  .fd-sub{ margin:12px 0 0; font-size:1.125rem; line-height:1.55; text-wrap:pretty; }
+  .fd-note{
+    margin:48px 0 0; max-width:48rem; border-left:4px solid var(--im-tan); background:var(--im-warm2);
+    padding:20px; font-size:1.125rem; line-height:1.55; text-wrap:pretty;
+  }
+  .fd-band{ background:var(--im-warm); }
+  .fd-band .fd-wrap{ padding-top:48px; padding-bottom:48px; }
+  @media (min-width:1024px){ .fd-band .fd-wrap{ padding-top:64px; padding-bottom:64px; } }
+  .fd-resources{ max-width:28rem; }
+
   .print-sheet{ display:none; }
 
   @media print{
     @page{ size: letter; margin: 0.5in; }
     #app{ max-width: none; padding: 0; }
+    #site-header, #im-menu, #site-footer{ display:none !important; }
     .screen-only{ display:none !important; }
     .print-sheet{ display:block !important; font-family: 'Inter', Arial, sans-serif; color:#141310; }
 
@@ -276,7 +447,81 @@
 </style>
 </head>
 <body>
+<header id="site-header">
+  <div class="im-cover-band"></div>
+  <div class="im-header-row">
+    <a class="im-logo im-logo-link" href="https://www.intentionalministries.com/" target="_blank" rel="noopener" aria-label="Intentional Ministries home (opens in a new tab)">
+      <img src="assets/logos/horizontal-navy.png" alt="Intentional Ministries" width="1567" height="503">
+    </a>
+    <span class="im-logo im-logo-static">
+      <img src="assets/logos/horizontal-navy.png" alt="Intentional Ministries" width="1567" height="503">
+    </span>
+    <nav class="im-nav" aria-label="Main">
+      <ul>
+        <li><a class="u-blue" href="https://www.intentionalministries.com/discipleship" target="_blank" rel="noopener">Discipleship<span class="im-sr"> (opens in a new tab)</span></a></li>
+        <li><a class="u-green" href="https://www.intentionalministries.com/marriage" target="_blank" rel="noopener" aria-current="page">Marriage<span class="im-sr"> (opens in a new tab)</span></a></li>
+        <li><a href="https://www.intentionalministries.com/resources" target="_blank" rel="noopener">Resources<span class="im-sr"> (opens in a new tab)</span></a></li>
+        <li><a href="https://www.intentionalministries.com/about" target="_blank" rel="noopener">About<span class="im-sr"> (opens in a new tab)</span></a></li>
+        <li><a href="https://www.intentionalministries.com/contact" target="_blank" rel="noopener">Contact<span class="im-sr"> (opens in a new tab)</span></a></li>
+      </ul>
+    </nav>
+    <button class="im-menu-btn" id="imMenuBtn" type="button" aria-expanded="false" aria-controls="im-menu" aria-label="Open menu">
+      <span class="im-burger" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
+  </div>
+  <div class="im-header-rule"></div>
+</header>
+<nav id="im-menu" aria-label="Main menu" hidden>
+  <ul>
+    <li><a href="https://www.intentionalministries.com/discipleship" target="_blank" rel="noopener"><span class="bar" style="background:var(--im-navy);opacity:.6"></span><span class="label">Discipleship</span><span class="im-sr"> (opens in a new tab)</span></a></li>
+    <li><a href="https://www.intentionalministries.com/marriage" target="_blank" rel="noopener" aria-current="page"><span class="bar" style="background:var(--im-green)"></span><span class="label">Marriage</span><span class="im-sr"> (opens in a new tab)</span></a></li>
+    <li><a href="https://www.intentionalministries.com/resources" target="_blank" rel="noopener"><span class="bar" style="background:var(--im-gray);opacity:.6"></span><span class="label">Resources</span><span class="im-sr"> (opens in a new tab)</span></a></li>
+    <li><a href="https://www.intentionalministries.com/about" target="_blank" rel="noopener"><span class="bar" style="background:var(--im-gray);opacity:.6"></span><span class="label">About</span><span class="im-sr"> (opens in a new tab)</span></a></li>
+    <li><a href="https://www.intentionalministries.com/contact" target="_blank" rel="noopener"><span class="bar" style="background:var(--im-gray);opacity:.6"></span><span class="label">Contact</span><span class="im-sr"> (opens in a new tab)</span></a></li>
+  </ul>
+</nav>
+
 <div id="app"></div>
+
+<footer id="site-footer">
+  <div class="im-stripe" aria-hidden="true"><i style="background:var(--im-blue)"></i><i style="background:var(--im-green)"></i></div>
+  <div class="im-footer-inner">
+    <div class="im-footer-top">
+      <div class="im-footer-brand">
+        <a class="im-footer-logo-link" href="https://www.intentionalministries.com/" target="_blank" rel="noopener" aria-label="Intentional Ministries home (opens in a new tab)">
+          <img src="assets/logos/horizontal-white.png" alt="Intentional Ministries" width="1567" height="503">
+        </a>
+        <img class="im-footer-logo-static" src="assets/logos/horizontal-white.png" alt="Intentional Ministries" width="1567" height="503">
+        <p class="im-tagline">Equipping people to live intentionally in faith, relationships, and life.</p>
+      </div>
+      <div class="im-footer-cols">
+        <div>
+          <h2 class="im-eyebrow">Discipleship</h2>
+          <ul>
+            <li><a href="https://www.intentionalministries.com/discipleship" target="_blank" rel="noopener">Discipleship<span class="im-sr"> (opens in a new tab)</span></a></li>
+            <li><a href="https://www.intentionalministries.com/discipleship/intentional-discipleship" target="_blank" rel="noopener">Intentional Discipleship<span class="im-sr"> (opens in a new tab)</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="im-eyebrow">Marriage</h2>
+          <ul>
+            <li><a href="https://www.intentionalministries.com/marriage" target="_blank" rel="noopener">Marriage<span class="im-sr"> (opens in a new tab)</span></a></li>
+            <li><a href="https://www.intentionalministries.com/marriage/intentional-marriage" target="_blank" rel="noopener">Intentional Marriage<span class="im-sr"> (opens in a new tab)</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <h2 class="im-eyebrow">More</h2>
+          <ul>
+            <li><a href="https://www.intentionalministries.com/resources" target="_blank" rel="noopener">Resources<span class="im-sr"> (opens in a new tab)</span></a></li>
+            <li><a href="https://www.intentionalministries.com/about" target="_blank" rel="noopener">About<span class="im-sr"> (opens in a new tab)</span></a></li>
+            <li><a href="https://www.intentionalministries.com/contact" target="_blank" rel="noopener">Contact<span class="im-sr"> (opens in a new tab)</span></a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="im-copy">© 2026 Intentional Ministries. All rights reserved.</div>
+  </div>
+</footer>
 
 <script>
 /* ---------- CONFIGURE THESE TWO VALUES FOR YOUR SUPABASE PROJECT ---------- */
@@ -489,6 +734,8 @@ window.addEventListener("afterprint", () => { state.expandAll = false; render();
 
 function render(){
   const app = document.getElementById("app");
+  app.className = state.view === "home" ? "app-wide" : "";
+  document.body.classList.toggle("flow-mode", state.view === "startChoice" || state.view === "assessment");
   if(state.view === "home") app.innerHTML = homeView();
   else if(state.view === "startChoice") app.innerHTML = startChoiceView();
   else if(state.view === "assessment") app.innerHTML = assessmentView();
@@ -501,22 +748,41 @@ function render(){
 }
 
 function homeView(){
+  const arrow = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M9 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
   return `
-    <h1 class="display">Intentional Marriage Assessment</h1>
-    <p class="lede">This assessment walks you through twelve key areas of a thriving marriage, from communication and intimacy to finances, faith, and family. It's not about a perfect score. It's about honest reflection that opens the door to a real conversation with your spouse.</p>
-    <div class="choice-row">
-      <button class="choice-btn" data-go="startChoice">
-        <span>Take the Assessment<span class="sub">Start the sixty-statement assessment</span></span>
-        <span class="arrow">&#8594;</span>
-      </button>
-      <button class="choice-btn" data-go="lookup">
-        <span>Check a Previous Result<span class="sub">You have a private code from an assessment you already took</span></span>
-        <span class="arrow">&#8594;</span>
-      </button>
-    </div>
-    <p class="footer-note">Individual answers are never shown to a class leader. Only anonymous category totals are added to the group view.</p>
-    <a class="btn btn-block" style="text-decoration:none; margin-top:18px;" href="${IM_LINK}" target="_blank" rel="noopener">Intentional Marriage Resources</a>
-    <p class="footer-note" style="margin-top:14px;"><button class="tiny-link" id="leaderLoginLink">Leader Login</button></p>
+    <section class="fd-hero">
+      <img class="fd-hero-bg" src="assets/backgrounds/marriage-green.jpg" alt="" aria-hidden="true">
+      <img class="fd-hero-icon" src="assets/icons/rings-tan.png" alt="" aria-hidden="true">
+      <div class="fd-wrap">
+        <h1 class="fd-h1"><span class="fd-hl">Intentional</span> <span class="fd-line">Marriage</span> <span class="fd-line">Assessment</span></h1>
+      </div>
+    </section>
+
+    <section class="fd-light">
+      <div class="fd-wrap">
+        <p class="fd-lead">This assessment walks you through twelve key areas of a thriving marriage, from communication and intimacy to finances, faith, and family. It's not about a perfect score. It's about honest reflection that opens the door to a real conversation with your spouse.</p>
+        <div class="fd-actions">
+          <div>
+            <button class="fd-btn fd-btn-green" data-go="startChoice">Take the Assessment ${arrow}</button>
+            <p class="fd-sub">Start the sixty-statement assessment</p>
+          </div>
+          <div>
+            <button class="fd-btn fd-btn-outline" data-go="lookup">Check a Previous Result ${arrow}</button>
+            <p class="fd-sub">You have a private code from an assessment you already took</p>
+          </div>
+        </div>
+        <p class="fd-note">Individual answers are never shown to a class leader. Only anonymous category totals are added to the group view.</p>
+      </div>
+    </section>
+
+    <section class="fd-band">
+      <div class="fd-wrap">
+        <div class="fd-resources">
+          <a class="btn btn-block" style="text-decoration:none; margin-top:18px;" href="${IM_LINK}" target="_blank" rel="noopener">Intentional Marriage Resources</a>
+          <p class="footer-note" style="margin-top:14px;"><button class="tiny-link" id="leaderLoginLink">Leader Login</button></p>
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -1212,6 +1478,22 @@ function attachHandlers(){
   const exportPdfBtn = document.getElementById("exportPdfBtn");
   if(exportPdfBtn) exportPdfBtn.addEventListener("click", () => window.print());
 }
+
+(function setupSiteMenu(){
+  const btn = document.getElementById("imMenuBtn");
+  const panel = document.getElementById("im-menu");
+  function setOpen(open){
+    btn.classList.toggle("open", open);
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    panel.hidden = !open;
+    document.body.style.overflow = open ? "hidden" : "";
+  }
+  btn.addEventListener("click", () => setOpen(panel.hidden));
+  panel.addEventListener("click", e => { if(e.target.closest("a")) setOpen(false); });
+  document.addEventListener("keydown", e => { if(e.key === "Escape" && !panel.hidden){ setOpen(false); btn.focus(); } });
+  window.addEventListener("resize", () => { if(window.innerWidth >= 1024 && !panel.hidden) setOpen(false); });
+})();
 
 render();
 initLeaderAccess();
