@@ -12,7 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase REST endpoint
+        # Queries a real table (the bare /rest/v1/ root is answered without
+        # touching the database). --fail makes the run go red on any non-2xx
+        # response instead of reporting success.
         run: |
-          curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
+          curl -sS --fail -o /dev/null -w "HTTP %{http_code}\n" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/submissions?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
